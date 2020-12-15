@@ -55,11 +55,11 @@ cbl.script("my-main-script", s => {
 
 cbl.script("my-new-script", s => {
 
-   s.begin(() => {
+	s.begin(() => {
 		s.set("voice", "Joe");
 		s.say("Hi. This is an entirely different script. Would you like to go " +
-			"*back* to the other script?");
-   });
+		"*back* to the other script?");
+	});
 
 	s.match(/back/i, () => {
 		s.say("OK, returning to the other script ...");$

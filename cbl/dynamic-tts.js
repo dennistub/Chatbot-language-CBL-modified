@@ -56,7 +56,7 @@ cbl.script("dynamic-tts", s => {
 		s.set("color", cbl.random_item(["red", "blue", "green"]));
 
 		// speak the username with browser TTS:
-      s.say("Hello " + cbl.get("username") + ", I am a chatbot.",
+		s.say("Hello " + cbl.get("username") + ", I am a chatbot.",
 			{ method: 'browser_tts' });
 
 		// speak the contents of a script variable with browser TTS:
@@ -72,7 +72,7 @@ cbl.script("dynamic-tts", s => {
 	s.match(/my favorite color is (.*)$/i, m => {
 		s.say("I'm glad to hear that your favorite color is " + m[1],
 			{ method: 'browser_tts' })
-   });
+	});
 
 	// this will capture all other responses
 	s.match(/^(.*)$/, m => {

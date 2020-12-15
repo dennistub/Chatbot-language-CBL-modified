@@ -22,7 +22,7 @@ cbl.script("gender", s => {
 			s.say("Hi, I am your assistant, *James*. You can *change* to another assistant or *continue* with me.");
 		}
 
-   });
+	});
 
 	// female mode
 	s.match_if(/change/i, s => s.get("mode") == "female", () => {

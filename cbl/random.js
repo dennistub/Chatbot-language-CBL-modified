@@ -17,7 +17,7 @@ cbl.script("random-coins", s => {
 			"Would you like to *flip* a coin today?",
 			"Let me know if you want to *flip* a coin.",
 		]);
-   });
+	});
 
 	s.match(/goodbye|bye/i, () => {
 		s.say("Goodbye!")
