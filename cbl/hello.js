@@ -15,7 +15,7 @@ cbl.script("hello-world", s => {
 
 	s.match(/hi|hello/i, () => {
 		s.say("Hello again!");
-   });
+	});
 
 	s.match(/goodbye|bye/i, () => {
 		s.say("Goodbye!")
