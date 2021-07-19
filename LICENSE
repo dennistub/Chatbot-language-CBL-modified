@@ -1,20 +1,20 @@
 Software License for the CBL Software
 
-Fraunhofer-Gesellschaft zur Förderung der angewandten Forschung e.V., 2020
+Fraunhofer-Gesellschaft zur Förderung der angewandten Forschung e.V., 2021
 
 1. INTRODUCTION
 
 The CBL software tools are tools to conduct chatbot experiments. Patent licenses may be required for using the CBL software and it is in your responsibility to obtain those if necessary.
 
-2. COPYRIGHT LICENSE
+2. COPYRIGHT LICENSE[AT4]
 
 Redistribution and use in source and binary forms, with or without modification, are permitted without payment of copyright license fees provided that you satisfy the following conditions:
 
 You must retain the complete text of this software license in redistributions of the CBL software or your modifications thereto in source code form.
 
 You must retain the complete text of this software license in the documentation and/or other materials provided with redistributions of the CBL software or your modifications thereto in binary form.
-
-Except as contained in this notice, the name of the Fraunhofer shall not be used in advertising or otherwise to promote the sale, use or other dealings in this Software without prior written authorization from Fraunhofer.
+You are required to indicate if and if yes which modifications to the CBL software were made by you. This obligation applies whether or not the modifications produced adapted material.
+Except as contained in this notice, the name of Fraunhofer shall not be used in advertising or otherwise to promote the sale, use or other dealings in this Software without prior written authorization from Fraunhofer.
 
 3. NO PATENT LICENSE
 
