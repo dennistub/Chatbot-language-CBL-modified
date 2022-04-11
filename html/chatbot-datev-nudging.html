@@ -1606,11 +1606,7 @@
 
       cbl.completed((e) => {
         e.html(
-          "<p>Thank you for completing the survey, please email the " +
-            "following JSON to the experiment leader:</p><br/>" +
-            "<pre>" +
-            cbl.survey_results_json("survey")
-        ) + "</pre>";
+          "<p>Thank you for completing the survey.</p><br/>");
       });
 
       cbl.start("datev-backup");
