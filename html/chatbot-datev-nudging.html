@@ -8,10 +8,14 @@
       integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
       crossorigin="anonymous"
     />
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css" />
+
     <script
       type="text/javascript"
       src="https://s3.amazonaws.com/mturk-public/externalHIT_v1.js"
     ></script>
+    <script src="https://unpkg.com/js-big-decimal@1.3.1/dist/web/js-big-decimal.min.js"></script>
+
     <script
       type="text/javascript"
       src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
@@ -167,6 +171,2380 @@
     </div>
 
     <script type="text/javascript">
+      //-----------------------------------------------Lohnsteuerrechner------------------------------------------//
+      function Lohnsteuer2021(params) {
+        console.log("params", params);
+        /* Input variables */
+
+        /**
+         * 1, wenn die Anwendung des Faktorverfahrens gewählt wurden (nur in Steuerklasse IV)
+         */
+        this.af = 1;
+        if (params["af"] !== undefined) {
+          this.setAf(params["af"]);
+        }
+
+        /**
+         * Auf die Vollendung des 64. Lebensjahres folgende
+         * Kalenderjahr (erforderlich, wenn ALTER1=1)
+         */
+        this.AJAHR = 0;
+        if (params["AJAHR"] !== undefined) {
+          this.setAjahr(params["AJAHR"]);
+        }
+
+        /**
+         * 1, wenn das 64. Lebensjahr zu Beginn des Kalenderjahres vollendet wurde, in dem
+         * der Lohnzahlungszeitraum endet (§ 24 a EStG), sonst = 0
+         */
+        this.ALTER1 = 0;
+        if (params["ALTER1"] !== undefined) {
+          this.setAlter1(params["ALTER1"]);
+        }
+
+        /**
+         * in VKAPA und VMT enthaltene Entschädigungen nach §24 Nummer 1 EStG in Cent
+         */
+        this.ENTSCH = new bigDecimal(0);
+        if (params["ENTSCH"] !== undefined) {
+          this.setEntsch(params["ENTSCH"]);
+        }
+
+        /**
+         * eingetragener Faktor mit drei Nachkommastellen
+         */
+        this.f = 1.0;
+        if (params["f"] !== undefined) {
+          this.setF(params["f"]);
+        }
+
+        /**
+         * Jahresfreibetrag nach Maßgabe der Eintragungen auf der
+         * Lohnsteuerkarte in Cents (ggf. 0)
+         */
+        this.JFREIB = new bigDecimal(0);
+        if (params["JFREIB"] !== undefined) {
+          this.setJfreib(params["JFREIB"]);
+        }
+
+        /**
+         * Jahreshinzurechnungsbetrag in Cents (ggf. 0)
+         */
+        this.JHINZU = new bigDecimal(0);
+        if (params["JHINZU"] !== undefined) {
+          this.setJhinzu(params["JHINZU"]);
+        }
+
+        /**
+         * Voraussichtlicher Jahresarbeitslohn ohne sonstige Bezüge und ohne Vergütung für mehrjährige Tätigkeit in Cent.
+         * Anmerkung: Die Eingabe dieses Feldes (ggf. 0) ist erforderlich bei Eingabe „sonsti-ger Bezüge“ (Feld SONSTB)
+         * oder bei Eingabe der „Vergütung für mehrjährige Tätigkeit“ (Feld VMT).
+         * Sind in einem vorangegangenen Abrechnungszeitraum bereits sonstige Bezüge gezahlt worden, so sind sie dem
+         * voraussichtlichen Jahresarbeitslohn hinzuzurechnen. Vergütungen für mehrere Jahres aus einem vorangegangenen
+         * Abrechnungszeitraum sind in voller Höhe hinzuzurechnen.
+         */
+        this.JRE4 = new bigDecimal(0);
+        if (params["JRE4"] !== undefined) {
+          this.setJre4(params["JRE4"]);
+        }
+
+        /**
+         * In JRE4 enthaltene Versorgungsbezuege in Cents (ggf. 0)
+         */
+        this.JVBEZ = new bigDecimal(0);
+        if (params["JVBEZ"] !== undefined) {
+          this.setJvbez(params["JVBEZ"]);
+        }
+
+        /**
+         * Merker für die Vorsorgepauschale
+         * 2 = der Arbeitnehmer ist NICHT in der gesetzlichen Rentenversicherung versichert.
+         *
+         * 1 = der Arbeitnehmer ist in der gesetzlichen Rentenversicherung versichert, es gilt die
+         * Beitragsbemessungsgrenze OST.
+         *
+         * 0 = der Arbeitnehmer ist in der gesetzlichen Rentenversicherung versichert, es gilt die
+         * Beitragsbemessungsgrenze WEST.
+         */
+        this.KRV = 0;
+        if (params["KRV"] !== undefined) {
+          this.setKrv(params["KRV"]);
+        }
+
+        /**
+         * Einkommensbezogener Zusatzbeitragssatz eines gesetzlich krankenversicherten Arbeitnehmers,
+         * auf dessen Basis der an die Krankenkasse zu zahlende Zusatzbeitrag berechnet wird,
+         * in Prozent (bspw. 0,90 für 0,90 %) mit 2 Dezimalstellen.
+         * Der von der Kranken-kasse festgesetzte Zusatzbeitragssatz ist bei Abweichungen unmaßgeblich.
+         */
+        this.KVZ = new bigDecimal(0);
+        if (params["KVZ"] !== undefined) {
+          this.setKvz(params["KVZ"]);
+        }
+
+        /**
+         * Lohnzahlungszeitraum:
+         * 1 = Jahr
+         * 2 = Monat
+         * 3 = Woche
+         * 4 = Tag
+         */
+        this.LZZ = 0;
+        if (params["LZZ"] !== undefined) {
+          this.setLzz(params["LZZ"]);
+        }
+
+        /**
+         * In der Lohnsteuerkarte des Arbeitnehmers eingetragener Freibetrag für
+         * den Lohnzahlungszeitraum in Cent
+         */
+        this.LZZFREIB = new bigDecimal(0);
+        if (params["LZZFREIB"] !== undefined) {
+          this.setLzzfreib(params["LZZFREIB"]);
+        }
+
+        /**
+         * In der Lohnsteuerkarte des Arbeitnehmers eingetragener Hinzurechnungsbetrag
+         * für den Lohnzahlungszeitraum in Cent
+         */
+        this.LZZHINZU = new bigDecimal(0);
+        if (params["LZZHINZU"] !== undefined) {
+          this.setLzzhinzu(params["LZZHINZU"]);
+        }
+
+        /**
+         * Dem Arbeitgeber mitgeteilte Zahlungen des Arbeitnehmers zur privaten
+         * Kranken- bzw. Pflegeversicherung im Sinne des §10 Abs. 1 Nr. 3 EStG 2010
+         * als Monatsbetrag in Cent (der Wert ist inabhängig vom Lohnzahlungszeitraum immer
+         * als Monatsbetrag anzugeben).
+         */
+        this.PKPV = new bigDecimal(0);
+        if (params["PKPV"] !== undefined) {
+          this.setPkpv(params["PKPV"]);
+        }
+
+        /**
+         * Krankenversicherung:
+         * 0 = gesetzlich krankenversicherte Arbeitnehmer
+         * 1 = ausschließlich privat krankenversicherte Arbeitnehmer OHNE Arbeitgeberzuschuss
+         * 2 = ausschließlich privat krankenversicherte Arbeitnehmer MIT Arbeitgeberzuschuss
+         */
+        this.PKV = 0;
+        if (params["PKV"] !== undefined) {
+          this.setPkv(params["PKV"]);
+        }
+
+        /**
+         * 1, wenn bei der sozialen Pflegeversicherung die Besonderheiten in Sachsen zu berücksichtigen sind bzw.
+         * zu berücksichtigen wären, sonst 0.
+         */
+        this.PVS = 0;
+        if (params["PVS"] !== undefined) {
+          this.setPvs(params["PVS"]);
+        }
+
+        /**
+         * 1, wenn er der Arbeitnehmer den Zuschlag zur sozialen Pflegeversicherung
+         * zu zahlen hat, sonst 0.
+         */
+        this.PVZ = 0;
+        if (params["PVZ"] !== undefined) {
+          this.setPvz(params["PVZ"]);
+        }
+
+        /**
+         * Religionsgemeinschaft des Arbeitnehmers lt. Lohnsteuerkarte (bei
+         * keiner Religionszugehoerigkeit = 0)
+         */
+        this.R = 0;
+        if (params["R"] !== undefined) {
+          this.setR(params["R"]);
+        }
+
+        /**
+         * Steuerpflichtiger Arbeitslohn vor Beruecksichtigung der Freibetraege
+         * fuer Versorgungsbezuege, des Altersentlastungsbetrags und des auf
+         * der Lohnsteuerkarte fuer den Lohnzahlungszeitraum eingetragenen
+         * Freibetrags in Cents.
+         */
+        this.RE4 = new bigDecimal(0);
+        if (params["RE4"] !== undefined) {
+          this.setRe4(params["RE4"]);
+        }
+
+        /**
+         * Sonstige Bezuege (ohne Verguetung aus mehrjaehriger Taetigkeit) einschliesslich
+         * Sterbegeld bei Versorgungsbezuegen sowie Kapitalauszahlungen/Abfindungen,
+         * soweit es sich nicht um Bezuege fuer mehrere Jahre handelt in Cents (ggf. 0)
+         */
+        this.SONSTB = new bigDecimal(0);
+        if (params["SONSTB"] !== undefined) {
+          this.setSonstb(params["SONSTB"]);
+        }
+
+        /**
+         * Sterbegeld bei Versorgungsbezuegen sowie Kapitalauszahlungen/Abfindungen,
+         * soweit es sich nicht um Bezuege fuer mehrere Jahre handelt
+         * (in SONSTB enthalten) in Cents
+         */
+        this.STERBE = new bigDecimal(0);
+        if (params["STERBE"] !== undefined) {
+          this.setSterbe(params["STERBE"]);
+        }
+
+        /**
+         * Steuerklasse:
+         * 1 = I
+         * 2 = II
+         * 3 = III
+         * 4 = IV
+         * 5 = V
+         * 6 = VI
+         */
+        this.STKL = 0;
+        if (params["STKL"] !== undefined) {
+          this.setStkl(params["STKL"]);
+        }
+
+        /**
+         * In RE4 enthaltene Versorgungsbezuege in Cents (ggf. 0)
+         */
+        this.VBEZ = new bigDecimal(0);
+        if (params["VBEZ"] !== undefined) {
+          this.setVbez(params["VBEZ"]);
+        }
+
+        /**
+         * Vorsorgungsbezug im Januar 2005 bzw. fuer den ersten vollen Monat
+         * in Cents
+         */
+        this.VBEZM = new bigDecimal(0);
+        if (params["VBEZM"] !== undefined) {
+          this.setVbezm(params["VBEZM"]);
+        }
+
+        /**
+         * Voraussichtliche Sonderzahlungen im Kalenderjahr des Versorgungsbeginns
+         * bei Versorgungsempfaengern ohne Sterbegeld, Kapitalauszahlungen/Abfindungen
+         * bei Versorgungsbezuegen in Cents
+         */
+        this.VBEZS = new bigDecimal(0);
+        if (params["VBEZS"] !== undefined) {
+          this.setVbezs(params["VBEZS"]);
+        }
+
+        /**
+         * In SONSTB enthaltene Versorgungsbezuege einschliesslich Sterbegeld
+         * in Cents (ggf. 0)
+         */
+        this.VBS = new bigDecimal(0);
+        if (params["VBS"] !== undefined) {
+          this.setVbs(params["VBS"]);
+        }
+
+        /**
+         * Jahr, in dem der Versorgungsbezug erstmalig gewaehrt wurde; werden
+         * mehrere Versorgungsbezuege gezahlt, so gilt der aelteste erstmalige Bezug
+         */
+        this.VJAHR = 0;
+        if (params["VJAHR"] !== undefined) {
+          this.setVjahr(params["VJAHR"]);
+        }
+
+        /**
+         * Kapitalauszahlungen / Abfindungen / Nachzahlungen bei Versorgungsbezügen
+         * für mehrere Jahre in Cent (ggf. 0)
+         */
+        this.VKAPA = new bigDecimal(0);
+        if (params["VKAPA"] !== undefined) {
+          this.setVkapa(params["VKAPA"]);
+        }
+
+        /**
+         * Vergütung für mehrjährige Tätigkeit ohne Kapitalauszahlungen und ohne Abfindungen
+         * bei Versorgungsbezügen in Cent (ggf. 0)
+         */
+        this.VMT = new bigDecimal(0);
+        if (params["VMT"] !== undefined) {
+          this.setVmt(params["VMT"]);
+        }
+
+        /**
+         * Zahl der Freibetraege fuer Kinder (eine Dezimalstelle, nur bei Steuerklassen
+         * I, II, III und IV)
+         */
+        this.ZKF = new bigDecimal(0);
+        if (params["ZKF"] !== undefined) {
+          this.setZkf(params["ZKF"]);
+        }
+
+        /**
+         * Zahl der Monate, fuer die Versorgungsbezuege gezahlt werden (nur
+         * erforderlich bei Jahresberechnung (LZZ = 1)
+         */
+        this.ZMVB = 0;
+        if (params["ZMVB"] !== undefined) {
+          this.setZmvb(params["ZMVB"]);
+        }
+
+        /**
+         * In JRE4 enthaltene Entschädigungen nach § 24 Nummer 1 EStG in Cent
+         */
+        this.JRE4ENT = new bigDecimal(0);
+        if (params["JRE4ENT"] !== undefined) {
+          this.setJre4ent(params["JRE4ENT"]);
+        }
+
+        /**
+         * In SONSTB enthaltene Entschädigungen nach § 24 Nummer 1 EStG in Cent
+         */
+        this.SONSTENT = new bigDecimal(0);
+        if (params["SONSTENT"] !== undefined) {
+          this.setSonstent(params["SONSTENT"]);
+        }
+
+        /* Output variables */
+
+        /**
+         * Bemessungsgrundlage fuer die Kirchenlohnsteuer in Cents
+         */
+        this.BK = new bigDecimal(0);
+
+        /**
+         * Bemessungsgrundlage der sonstigen Einkuenfte (ohne Verguetung
+         * fuer mehrjaehrige Taetigkeit) fuer die Kirchenlohnsteuer in Cents
+         */
+        this.BKS = new bigDecimal(0);
+        this.BKV = new bigDecimal(0);
+
+        /**
+         * Fuer den Lohnzahlungszeitraum einzubehaltende Lohnsteuer in Cents
+         */
+        this.LSTLZZ = new bigDecimal(0);
+
+        /**
+         * Fuer den Lohnzahlungszeitraum einzubehaltender Solidaritaetszuschlag
+         * in Cents
+         */
+        this.SOLZLZZ = new bigDecimal(0);
+
+        /**
+         * Solidaritaetszuschlag fuer sonstige Bezuege (ohne Verguetung fuer mehrjaehrige
+         * Taetigkeit) in Cents
+         */
+        this.SOLZS = new bigDecimal(0);
+
+        /**
+         * Solidaritaetszuschlag fuer die Verguetung fuer mehrjaehrige Taetigkeit in
+         * Cents
+         */
+        this.SOLZV = new bigDecimal(0);
+
+        /**
+         * Lohnsteuer fuer sonstige Einkuenfte (ohne Verguetung fuer mehrjaehrige
+         * Taetigkeit) in Cents
+         */
+        this.STS = new bigDecimal(0);
+
+        /**
+         * Lohnsteuer fuer Verguetung fuer mehrjaehrige Taetigkeit in Cents
+         */
+        this.STV = new bigDecimal(0);
+
+        /**
+         * Für den Lohnzahlungszeitraum berücksichtigte Beiträge des Arbeitnehmers zur
+         * privaten Basis-Krankenversicherung und privaten Pflege-Pflichtversicherung (ggf. auch
+         * die Mindestvorsorgepauschale) in Cent beim laufenden Arbeitslohn. Für Zwecke der Lohn-
+         * steuerbescheinigung sind die einzelnen Ausgabewerte außerhalb des eigentlichen Lohn-
+         * steuerbescheinigungsprogramms zu addieren; hinzuzurechnen sind auch die Ausgabewerte
+         * VKVSONST
+         */
+        this.VKVLZZ = new bigDecimal(0);
+
+        /**
+         * Für den Lohnzahlungszeitraum berücksichtigte Beiträge des Arbeitnehmers
+         * zur privaten Basis-Krankenversicherung und privaten Pflege-Pflichtversicherung (ggf.
+         * auch die Mindestvorsorgepauschale) in Cent bei sonstigen Bezügen. Der Ausgabewert kann
+         * auch negativ sein. Für tarifermäßigt zu besteuernde Vergütungen für mehrjährige
+         * Tätigkeiten enthält der PAP keinen entsprechenden Ausgabewert.
+         */
+        this.VKVSONST = new bigDecimal(0);
+
+        /**
+         * Verbrauchter Freibetrag bei Berechnung des laufenden Arbeitslohns, in Cent
+         */
+        this.VFRB = new bigDecimal(0);
+
+        /**
+         * Verbrauchter Freibetrag bei Berechnung des voraussichtlichen Jahresarbeitslohns, in Cent
+         */
+        this.VFRBS1 = new bigDecimal(0);
+
+        /**
+         * Verbrauchter Freibetrag bei Berechnung der sonstigen Bezüge, in Cent
+         */
+        this.VFRBS2 = new bigDecimal(0);
+
+        /**
+         * Für die weitergehende Berücksichtigung des Steuerfreibetrags nach dem DBA Türkei verfügbares ZVE über
+         * dem Grundfreibetrag bei der Berechnung des laufenden Arbeitslohns, in Cent
+         */
+        this.WVFRB = new bigDecimal(0);
+
+        /**
+         * Für die weitergehende Berücksichtigung des Steuerfreibetrags nach dem DBA Türkei verfügbares ZVE über dem Grundfreibetrag
+         * bei der Berechnung des voraussichtlichen Jahresarbeitslohns, in Cent
+         */
+        this.WVFRBO = new bigDecimal(0);
+
+        /**
+         * Für die weitergehende Berücksichtigung des Steuerfreibetrags nach dem DBA Türkei verfügbares ZVE
+         * über dem Grundfreibetrag bei der Berechnung der sonstigen Bezüge, in Cent
+         */
+        this.WVFRBM = new bigDecimal(0);
+
+        /* Internal variables */
+
+        /**
+         * Altersentlastungsbetrag nach Alterseinkünftegesetz in €,
+         * Cent (2 Dezimalstellen)
+         */
+        this.ALTE = new bigDecimal(0);
+
+        /**
+         * Arbeitnehmer-Pauschbetrag in EURO
+         */
+        this.ANP = new bigDecimal(0);
+
+        /**
+         * Auf den Lohnzahlungszeitraum entfallender Anteil von Jahreswerten
+         * auf ganze Cents abgerundet
+         */
+        this.ANTEIL1 = new bigDecimal(0);
+
+        /**
+         * Bemessungsgrundlage für Altersentlastungsbetrag in €, Cent
+         * (2 Dezimalstellen)
+         */
+        this.BMG = new bigDecimal(0);
+
+        /**
+         * Beitragsbemessungsgrenze in der gesetzlichen Krankenversicherung
+         * und der sozialen Pflegeversicherung in Euro
+         */
+        this.BBGKVPV = new bigDecimal(0);
+
+        /**
+         * Nach Programmablaufplan 2019
+         */
+        this.bd = new bigDecimal(0);
+
+        /**
+         * allgemeine Beitragsbemessungsgrenze in der allgemeinen Renten-versicherung in Euro
+         */
+        this.BBGRV = new bigDecimal(0);
+
+        /**
+         * Differenz zwischen ST1 und ST2 in EURO
+         */
+        this.DIFF = new bigDecimal(0);
+
+        /**
+         * Entlastungsbetrag fuer Alleinerziehende in EURO
+         */
+        this.EFA = new bigDecimal(0);
+
+        /**
+         * Versorgungsfreibetrag in €, Cent (2 Dezimalstellen)
+         */
+        this.FVB = new bigDecimal(0);
+
+        /**
+         * Versorgungsfreibetrag in €, Cent (2 Dezimalstellen) für die Berechnung
+         * der Lohnsteuer für den sonstigen Bezug
+         */
+        this.FVBSO = new bigDecimal(0);
+
+        /**
+         * Zuschlag zum Versorgungsfreibetrag in EURO
+         */
+        this.FVBZ = new bigDecimal(0);
+
+        /**
+         * Zuschlag zum Versorgungsfreibetrag in EURO fuer die Berechnung
+         * der Lohnsteuer beim sonstigen Bezug
+         */
+        this.FVBZSO = new bigDecimal(0);
+
+        /**
+         * Grundfreibetrag in Euro
+         */
+        this.GFB = new bigDecimal(0);
+
+        /**
+         * Maximaler Altersentlastungsbetrag in €
+         */
+        this.HBALTE = new bigDecimal(0);
+
+        /**
+         * Massgeblicher maximaler Versorgungsfreibetrag in €
+         */
+        this.HFVB = new bigDecimal(0);
+
+        /**
+         * Massgeblicher maximaler Zuschlag zum Versorgungsfreibetrag in €,Cent
+         * (2 Dezimalstellen)
+         */
+        this.HFVBZ = new bigDecimal(0);
+
+        /**
+         * Massgeblicher maximaler Zuschlag zum Versorgungsfreibetrag in €, Cent
+         * (2 Dezimalstellen) für die Berechnung der Lohnsteuer für den
+         * sonstigen Bezug
+         */
+        this.HFVBZSO = new bigDecimal(0);
+
+        /**
+         * Nummer der Tabellenwerte fuer Versorgungsparameter
+         */
+        this.J = 0;
+
+        /**
+         * Jahressteuer nach § 51a EStG, aus der Solidaritaetszuschlag und
+         * Bemessungsgrundlage fuer die Kirchenlohnsteuer ermittelt werden in EURO
+         */
+        this.JBMG = new bigDecimal(0);
+
+        /**
+         * Auf einen Jahreslohn hochgerechneter LZZFREIB in €, Cent
+         * (2 Dezimalstellen)
+         */
+        this.JLFREIB = new bigDecimal(0);
+
+        /**
+         * Auf einen Jahreslohn hochgerechnete LZZHINZU in €, Cent
+         * (2 Dezimalstellen)
+         */
+        this.JLHINZU = new bigDecimal(0);
+
+        /**
+         * Jahreswert, dessen Anteil fuer einen Lohnzahlungszeitraum in
+         * UPANTEIL errechnet werden soll in Cents
+         */
+        this.JW = new bigDecimal(0);
+
+        /**
+         * Nummer der Tabellenwerte fuer Parameter bei Altersentlastungsbetrag
+         */
+        this.K = 0;
+
+        /**
+         * Merker für Berechnung Lohnsteuer für mehrjährige Tätigkeit.
+         * 0 = normale Steuerberechnung
+         * 1 = Steuerberechnung für mehrjährige Tätigkeit
+         * 2 = entfällt
+         */
+        this.KENNVMT = 0;
+
+        /**
+         * Summe der Freibetraege fuer Kinder in EURO
+         */
+        this.KFB = new bigDecimal(0);
+
+        /**
+         * Beitragssatz des Arbeitgebers zur Krankenversicherung
+         */
+        this.KVSATZAG = new bigDecimal(0);
+
+        /**
+         * Beitragssatz des Arbeitnehmers zur Krankenversicherung
+         */
+        this.KVSATZAN = new bigDecimal(0);
+
+        /**
+         * Kennzahl fuer die Einkommensteuer-Tabellenart:
+         * 1 = Grundtabelle
+         * 2 = Splittingtabelle
+         */
+        this.KZTAB = 0;
+
+        /**
+         * Jahreslohnsteuer in EURO
+         */
+        this.LSTJAHR = new bigDecimal(0);
+
+        /**
+         * Zwischenfelder der Jahreslohnsteuer in Cent
+         */
+        this.LST1 = new bigDecimal(0);
+        this.LST2 = new bigDecimal(0);
+        this.LST3 = new bigDecimal(0);
+        this.LSTOSO = new bigDecimal(0);
+        this.LSTSO = new bigDecimal(0);
+
+        /**
+         * Mindeststeuer fuer die Steuerklassen V und VI in EURO
+         */
+        this.MIST = new bigDecimal(0);
+
+        /**
+         * Beitragssatz des Arbeitgebers zur Pflegeversicherung
+         */
+        this.PVSATZAG = new bigDecimal(0);
+
+        /**
+         * Beitragssatz des Arbeitnehmers zur Pflegeversicherung
+         */
+        this.PVSATZAN = new bigDecimal(0);
+
+        /**
+         * Beitragssatz des Arbeitnehmers in der allgemeinen gesetzlichen Rentenversicherung (4 Dezimalstellen)
+         */
+        this.RVSATZAN = new bigDecimal(0);
+
+        /**
+         * Rechenwert in Gleitkommadarstellung
+         */
+        this.RW = new bigDecimal(0);
+
+        /**
+         * Sonderausgaben-Pauschbetrag in EURO
+         */
+        this.SAP = new bigDecimal(0);
+
+        /**
+         * Freigrenze fuer den Solidaritaetszuschlag in EURO
+         */
+        this.SOLZFREI = new bigDecimal(0);
+
+        /**
+         * Solidaritaetszuschlag auf die Jahreslohnsteuer in EURO, C (2 Dezimalstellen)
+         */
+        this.SOLZJ = new bigDecimal(0);
+
+        /**
+         * Zwischenwert fuer den Solidaritaetszuschlag auf die Jahreslohnsteuer
+         * in EURO, C (2 Dezimalstellen)
+         */
+        this.SOLZMIN = new bigDecimal(0);
+
+        /**
+         * Neu ab 2021: Bemessungsgrundlage des Solidaritätszuschlags zur Prüfung der Freigrenze beim Solidaritätszuschlag für sonstige Bezüge (ohne Vergütung für mehrjährige Tätigkeit) in Euro
+         */
+        this.SOLZSBMG = new bigDecimal(0);
+
+        /**
+         * Neu ab 2021: Zu versteuerndes Einkommen für die Ermittlung der Bemessungsgrundlage des Solidaritätszuschlags zur Prüfung der Freigrenze beim Solidaritätszuschlag für sonstige Bezüge (ohne Vergütung für mehrjährige Tätigkeit) in Euro, Cent (2 Dezimalstellen)
+         */
+        this.SOLZSZVE = new bigDecimal(0);
+
+        /**
+         * Neu ab 2021: Bemessungsgrundlage des Solidaritätszuschlags für die Prüfung der Freigrenze beim Solidaritätszuschlag für die Vergütung für mehrjährige Tätigkeit in Euro
+         */
+        this.SOLZVBMG = new bigDecimal(0);
+
+        /**
+         * Tarifliche Einkommensteuer in EURO
+         */
+        this.ST = new bigDecimal(0);
+
+        /**
+         * Tarifliche Einkommensteuer auf das 1,25-fache ZX in EURO
+         */
+        this.ST1 = new bigDecimal(0);
+
+        /**
+         * Tarifliche Einkommensteuer auf das 0,75-fache ZX in EURO
+         */
+        this.ST2 = new bigDecimal(0);
+
+        /**
+         * Zwischenfeld zur Ermittlung der Steuer auf Vergütungen für mehrjährige Tätigkeit
+         */
+        this.STOVMT = new bigDecimal(0);
+
+        /**
+         * Teilbetragssatz der Vorsorgepauschale für die Rentenversicherung (2 Dezimalstellen)
+         */
+        this.TBSVORV = new bigDecimal(0);
+
+        /**
+         * Bemessungsgrundlage fuer den Versorgungsfreibetrag in Cents
+         */
+        this.VBEZB = new bigDecimal(0);
+
+        /**
+         * Bemessungsgrundlage für den Versorgungsfreibetrag in Cent für
+         * den sonstigen Bezug
+         */
+        this.VBEZBSO = new bigDecimal(0);
+
+        /**
+         * Hoechstbetrag der Vorsorgepauschale nach Alterseinkuenftegesetz in EURO, C
+         */
+        this.VHB = new bigDecimal(0);
+
+        /**
+         * Vorsorgepauschale in EURO, C (2 Dezimalstellen)
+         */
+        this.VSP = new bigDecimal(0);
+
+        /**
+         * Vorsorgepauschale nach Alterseinkuenftegesetz in EURO, C
+         */
+        this.VSPN = new bigDecimal(0);
+
+        /**
+         * Zwischenwert 1 bei der Berechnung der Vorsorgepauschale nach
+         * dem Alterseinkuenftegesetz in EURO, C (2 Dezimalstellen)
+         */
+        this.VSP1 = new bigDecimal(0);
+
+        /**
+         * Zwischenwert 2 bei der Berechnung der Vorsorgepauschale nach
+         * dem Alterseinkuenftegesetz in EURO, C (2 Dezimalstellen)
+         */
+        this.VSP2 = new bigDecimal(0);
+
+        /**
+         * Vorsorgepauschale mit Teilbeträgen für die gesetzliche Kranken- und
+         * soziale Pflegeversicherung nach fiktiven Beträgen oder ggf. für die
+         * private Basiskrankenversicherung und private Pflege-Pflichtversicherung
+         * in Euro, Cent (2 Dezimalstellen)
+         */
+        this.VSP3 = new bigDecimal(0);
+
+        /**
+         * Erster Grenzwert in Steuerklasse V/VI in Euro
+         */
+        this.W1STKL5 = new bigDecimal(0);
+
+        /**
+         * Zweiter Grenzwert in Steuerklasse V/VI in Euro
+         */
+        this.W2STKL5 = new bigDecimal(0);
+
+        /**
+         * Dritter Grenzwert in Steuerklasse V/VI in Euro
+         */
+        this.W3STKL5 = new bigDecimal(0);
+
+        /**
+         * Hoechstbetrag der Vorsorgepauschale nach § 10c Abs. 2 Nr. 2 EStG in EURO
+         */
+        this.VSPMAX1 = new bigDecimal(0);
+
+        /**
+         * Hoechstbetrag der Vorsorgepauschale nach § 10c Abs. 2 Nr. 3 EStG in EURO
+         */
+        this.VSPMAX2 = new bigDecimal(0);
+
+        /**
+         * Vorsorgepauschale nach § 10c Abs. 2 Satz 2 EStG vor der Hoechstbetragsberechnung
+         * in EURO, C (2 Dezimalstellen)
+         */
+        this.VSPO = new bigDecimal(0);
+
+        /**
+         * Fuer den Abzug nach § 10c Abs. 2 Nrn. 2 und 3 EStG verbleibender
+         * Rest von VSPO in EURO, C (2 Dezimalstellen)
+         */
+        this.VSPREST = new bigDecimal(0);
+
+        /**
+         * Hoechstbetrag der Vorsorgepauschale nach § 10c Abs. 2 Nr. 1 EStG
+         * in EURO, C (2 Dezimalstellen)
+         */
+        this.VSPVOR = new bigDecimal(0);
+
+        /**
+         * Zu versteuerndes Einkommen gem. § 32a Abs. 1 und 2 EStG €, C
+         * (2 Dezimalstellen)
+         */
+        this.X = new bigDecimal(0);
+
+        /**
+         * gem. § 32a Abs. 1 EStG (6 Dezimalstellen)
+         */
+        this.Y = new bigDecimal(0);
+
+        /**
+         * Auf einen Jahreslohn hochgerechnetes RE4 in €, C (2 Dezimalstellen)
+         * nach Abzug der Freibeträge nach § 39 b Abs. 2 Satz 3 und 4.
+         */
+        this.ZRE4 = new bigDecimal(0);
+
+        /**
+         * Auf einen Jahreslohn hochgerechnetes RE4 in €, C (2 Dezimalstellen)
+         */
+        this.ZRE4J = new bigDecimal(0);
+
+        /**
+         * Auf einen Jahreslohn hochgerechnetes RE4 in €, C (2 Dezimalstellen)
+         * nach Abzug des Versorgungsfreibetrags und des Alterentlastungsbetrags
+         * zur Berechnung der Vorsorgepauschale in €, Cent (2 Dezimalstellen)
+         */
+        this.ZRE4VP = new bigDecimal(0);
+
+        /**
+         * Feste Tabellenfreibeträge (ohne Vorsorgepauschale) in €, Cent
+         * (2 Dezimalstellen)
+         */
+        this.ZTABFB = new bigDecimal(0);
+
+        /**
+         * Auf einen Jahreslohn hochgerechnetes (VBEZ abzueglich FVB) in
+         * EURO, C (2 Dezimalstellen)
+         */
+        this.ZVBEZ = new bigDecimal(0);
+
+        /**
+         * Auf einen Jahreslohn hochgerechnetes VBEZ in €, C (2 Dezimalstellen)
+         */
+        this.ZVBEZJ = new bigDecimal(0);
+
+        /**
+         * Zu versteuerndes Einkommen in €, C (2 Dezimalstellen)
+         */
+        this.ZVE = new bigDecimal(0);
+
+        /**
+         * Zwischenfelder zu X fuer die Berechnung der Steuer nach § 39b
+         * Abs. 2 Satz 7 EStG in €
+         */
+        this.ZX = new bigDecimal(0);
+        this.ZZX = new bigDecimal(0);
+        this.HOCH = new bigDecimal(0);
+        this.VERGL = new bigDecimal(0);
+
+        /**
+         * Jahreswert der berücksichtigten Beiträge zur privaten Basis-Krankenversicherung und
+         * privaten Pflege-Pflichtversicherung (ggf. auch die Mindestvorsorgepauschale) in Cent.
+         */
+        this.VKV = new bigDecimal(0);
+      }
+
+      /* Constants */
+
+      /**
+       * Tabelle fuer die Vomhundertsaetze des Versorgungsfreibetrags
+       */
+      Object.defineProperty(Lohnsteuer2021, "TAB1", {
+        value: [
+          bigDecimal.valueOf(0.0),
+          bigDecimal.valueOf(0.4),
+          bigDecimal.valueOf(0.384),
+          bigDecimal.valueOf(0.368),
+          bigDecimal.valueOf(0.352),
+          bigDecimal.valueOf(0.336),
+          bigDecimal.valueOf(0.32),
+          bigDecimal.valueOf(0.304),
+          bigDecimal.valueOf(0.288),
+          bigDecimal.valueOf(0.272),
+          bigDecimal.valueOf(0.256),
+          bigDecimal.valueOf(0.24),
+          bigDecimal.valueOf(0.224),
+          bigDecimal.valueOf(0.208),
+          bigDecimal.valueOf(0.192),
+          bigDecimal.valueOf(0.176),
+          bigDecimal.valueOf(0.16),
+          bigDecimal.valueOf(0.152),
+          bigDecimal.valueOf(0.144),
+          bigDecimal.valueOf(0.136),
+          bigDecimal.valueOf(0.128),
+          bigDecimal.valueOf(0.12),
+          bigDecimal.valueOf(0.112),
+          bigDecimal.valueOf(0.104),
+          bigDecimal.valueOf(0.096),
+          bigDecimal.valueOf(0.088),
+          bigDecimal.valueOf(0.08),
+          bigDecimal.valueOf(0.072),
+          bigDecimal.valueOf(0.064),
+          bigDecimal.valueOf(0.056),
+          bigDecimal.valueOf(0.048),
+          bigDecimal.valueOf(0.04),
+          bigDecimal.valueOf(0.032),
+          bigDecimal.valueOf(0.024),
+          bigDecimal.valueOf(0.016),
+          bigDecimal.valueOf(0.008),
+          bigDecimal.valueOf(0.0),
+        ],
+      });
+
+      /**
+       * Tabelle fuer die Hoechstbetrage des Versorgungsfreibetrags
+       */
+      Object.defineProperty(Lohnsteuer2021, "TAB2", {
+        value: [
+          bigDecimal.valueOf(0),
+          bigDecimal.valueOf(3000),
+          bigDecimal.valueOf(2880),
+          bigDecimal.valueOf(2760),
+          bigDecimal.valueOf(2640),
+          bigDecimal.valueOf(2520),
+          bigDecimal.valueOf(2400),
+          bigDecimal.valueOf(2280),
+          bigDecimal.valueOf(2160),
+          bigDecimal.valueOf(2040),
+          bigDecimal.valueOf(1920),
+          bigDecimal.valueOf(1800),
+          bigDecimal.valueOf(1680),
+          bigDecimal.valueOf(1560),
+          bigDecimal.valueOf(1440),
+          bigDecimal.valueOf(1320),
+          bigDecimal.valueOf(1200),
+          bigDecimal.valueOf(1140),
+          bigDecimal.valueOf(1080),
+          bigDecimal.valueOf(1020),
+          bigDecimal.valueOf(960),
+          bigDecimal.valueOf(900),
+          bigDecimal.valueOf(840),
+          bigDecimal.valueOf(780),
+          bigDecimal.valueOf(720),
+          bigDecimal.valueOf(660),
+          bigDecimal.valueOf(600),
+          bigDecimal.valueOf(540),
+          bigDecimal.valueOf(480),
+          bigDecimal.valueOf(420),
+          bigDecimal.valueOf(360),
+          bigDecimal.valueOf(300),
+          bigDecimal.valueOf(240),
+          bigDecimal.valueOf(180),
+          bigDecimal.valueOf(120),
+          bigDecimal.valueOf(60),
+          bigDecimal.valueOf(0),
+        ],
+      });
+
+      /**
+       * Tabelle fuer die Zuschlaege zum Versorgungsfreibetrag
+       */
+      Object.defineProperty(Lohnsteuer2021, "TAB3", {
+        value: [
+          bigDecimal.valueOf(0),
+          bigDecimal.valueOf(900),
+          bigDecimal.valueOf(864),
+          bigDecimal.valueOf(828),
+          bigDecimal.valueOf(792),
+          bigDecimal.valueOf(756),
+          bigDecimal.valueOf(720),
+          bigDecimal.valueOf(684),
+          bigDecimal.valueOf(648),
+          bigDecimal.valueOf(612),
+          bigDecimal.valueOf(576),
+          bigDecimal.valueOf(540),
+          bigDecimal.valueOf(504),
+          bigDecimal.valueOf(468),
+          bigDecimal.valueOf(432),
+          bigDecimal.valueOf(396),
+          bigDecimal.valueOf(360),
+          bigDecimal.valueOf(342),
+          bigDecimal.valueOf(324),
+          bigDecimal.valueOf(306),
+          bigDecimal.valueOf(288),
+          bigDecimal.valueOf(270),
+          bigDecimal.valueOf(252),
+          bigDecimal.valueOf(234),
+          bigDecimal.valueOf(216),
+          bigDecimal.valueOf(198),
+          bigDecimal.valueOf(180),
+          bigDecimal.valueOf(162),
+          bigDecimal.valueOf(144),
+          bigDecimal.valueOf(126),
+          bigDecimal.valueOf(108),
+          bigDecimal.valueOf(90),
+          bigDecimal.valueOf(72),
+          bigDecimal.valueOf(54),
+          bigDecimal.valueOf(36),
+          bigDecimal.valueOf(18),
+          bigDecimal.valueOf(0),
+        ],
+      });
+
+      /**
+       * Tabelle fuer die Vomhundertsaetze des Altersentlastungsbetrags
+       */
+      Object.defineProperty(Lohnsteuer2021, "TAB4", {
+        value: [
+          bigDecimal.valueOf(0.0),
+          bigDecimal.valueOf(0.4),
+          bigDecimal.valueOf(0.384),
+          bigDecimal.valueOf(0.368),
+          bigDecimal.valueOf(0.352),
+          bigDecimal.valueOf(0.336),
+          bigDecimal.valueOf(0.32),
+          bigDecimal.valueOf(0.304),
+          bigDecimal.valueOf(0.288),
+          bigDecimal.valueOf(0.272),
+          bigDecimal.valueOf(0.256),
+          bigDecimal.valueOf(0.24),
+          bigDecimal.valueOf(0.224),
+          bigDecimal.valueOf(0.208),
+          bigDecimal.valueOf(0.192),
+          bigDecimal.valueOf(0.176),
+          bigDecimal.valueOf(0.16),
+          bigDecimal.valueOf(0.152),
+          bigDecimal.valueOf(0.144),
+          bigDecimal.valueOf(0.136),
+          bigDecimal.valueOf(0.128),
+          bigDecimal.valueOf(0.12),
+          bigDecimal.valueOf(0.112),
+          bigDecimal.valueOf(0.104),
+          bigDecimal.valueOf(0.096),
+          bigDecimal.valueOf(0.088),
+          bigDecimal.valueOf(0.08),
+          bigDecimal.valueOf(0.072),
+          bigDecimal.valueOf(0.064),
+          bigDecimal.valueOf(0.056),
+          bigDecimal.valueOf(0.048),
+          bigDecimal.valueOf(0.04),
+          bigDecimal.valueOf(0.032),
+          bigDecimal.valueOf(0.024),
+          bigDecimal.valueOf(0.016),
+          bigDecimal.valueOf(0.008),
+          bigDecimal.valueOf(0.0),
+        ],
+      });
+
+      /**
+       * Tabelle fuer die Hoechstbetraege des Altersentlastungsbetrags
+       */
+      Object.defineProperty(Lohnsteuer2021, "TAB5", {
+        value: [
+          bigDecimal.valueOf(0),
+          bigDecimal.valueOf(1900),
+          bigDecimal.valueOf(1824),
+          bigDecimal.valueOf(1748),
+          bigDecimal.valueOf(1672),
+          bigDecimal.valueOf(1596),
+          bigDecimal.valueOf(1520),
+          bigDecimal.valueOf(1444),
+          bigDecimal.valueOf(1368),
+          bigDecimal.valueOf(1292),
+          bigDecimal.valueOf(1216),
+          bigDecimal.valueOf(1140),
+          bigDecimal.valueOf(1064),
+          bigDecimal.valueOf(988),
+          bigDecimal.valueOf(912),
+          bigDecimal.valueOf(836),
+          bigDecimal.valueOf(760),
+          bigDecimal.valueOf(722),
+          bigDecimal.valueOf(684),
+          bigDecimal.valueOf(646),
+          bigDecimal.valueOf(608),
+          bigDecimal.valueOf(570),
+          bigDecimal.valueOf(532),
+          bigDecimal.valueOf(494),
+          bigDecimal.valueOf(456),
+          bigDecimal.valueOf(418),
+          bigDecimal.valueOf(380),
+          bigDecimal.valueOf(342),
+          bigDecimal.valueOf(304),
+          bigDecimal.valueOf(266),
+          bigDecimal.valueOf(228),
+          bigDecimal.valueOf(190),
+          bigDecimal.valueOf(152),
+          bigDecimal.valueOf(114),
+          bigDecimal.valueOf(76),
+          bigDecimal.valueOf(38),
+          bigDecimal.valueOf(0),
+        ],
+      });
+
+      /**
+       * Zahlenkonstanten fuer im Plan oft genutzte bigDecimal Werte
+       */
+      Object.defineProperty(Lohnsteuer2021, "ZAHL1", {
+        value: new bigDecimal(1),
+      });
+      Object.defineProperty(Lohnsteuer2021, "ZAHL2", {
+        value: new bigDecimal(2),
+      });
+      Object.defineProperty(Lohnsteuer2021, "ZAHL5", {
+        value: new bigDecimal(5),
+      });
+      Object.defineProperty(Lohnsteuer2021, "ZAHL7", {
+        value: new bigDecimal(7),
+      });
+      Object.defineProperty(Lohnsteuer2021, "ZAHL12", {
+        value: new bigDecimal(12),
+      });
+      Object.defineProperty(Lohnsteuer2021, "ZAHL100", {
+        value: new bigDecimal(100),
+      });
+      Object.defineProperty(Lohnsteuer2021, "ZAHL360", {
+        value: new bigDecimal(360),
+      });
+      Object.defineProperty(Lohnsteuer2021, "ZAHL500", {
+        value: new bigDecimal(500),
+      });
+      Object.defineProperty(Lohnsteuer2021, "ZAHL700", {
+        value: new bigDecimal(700),
+      });
+      Object.defineProperty(Lohnsteuer2021, "ZAHL1000", {
+        value: new bigDecimal(1000),
+      });
+      Object.defineProperty(Lohnsteuer2021, "ZAHL10000", {
+        value: new bigDecimal(10000),
+      });
+
+      Lohnsteuer2021.prototype.setAf = function (value) {
+        this.af = value;
+      };
+
+      Lohnsteuer2021.prototype.setAjahr = function (value) {
+        this.AJAHR = value;
+      };
+
+      Lohnsteuer2021.prototype.setAlter1 = function (value) {
+        this.ALTER1 = value;
+      };
+
+      Lohnsteuer2021.prototype.setEntsch = function (value) {
+        this.ENTSCH = value;
+      };
+
+      Lohnsteuer2021.prototype.setF = function (value) {
+        this.f = value;
+      };
+
+      Lohnsteuer2021.prototype.setJfreib = function (value) {
+        this.JFREIB = value;
+      };
+
+      Lohnsteuer2021.prototype.setJhinzu = function (value) {
+        this.JHINZU = value;
+      };
+
+      Lohnsteuer2021.prototype.setJre4 = function (value) {
+        this.JRE4 = value;
+      };
+
+      Lohnsteuer2021.prototype.setJvbez = function (value) {
+        this.JVBEZ = value;
+      };
+
+      Lohnsteuer2021.prototype.setKrv = function (value) {
+        this.KRV = value;
+      };
+
+      Lohnsteuer2021.prototype.setKvz = function (value) {
+        this.KVZ = value;
+      };
+
+      Lohnsteuer2021.prototype.setLzz = function (value) {
+        this.LZZ = value;
+      };
+
+      Lohnsteuer2021.prototype.setLzzfreib = function (value) {
+        this.LZZFREIB = value;
+      };
+
+      Lohnsteuer2021.prototype.setLzzhinzu = function (value) {
+        this.LZZHINZU = value;
+      };
+
+      Lohnsteuer2021.prototype.setPkpv = function (value) {
+        this.PKPV = value;
+      };
+
+      Lohnsteuer2021.prototype.setPkv = function (value) {
+        this.PKV = value;
+      };
+
+      Lohnsteuer2021.prototype.setPvs = function (value) {
+        this.PVS = value;
+      };
+
+      Lohnsteuer2021.prototype.setPvz = function (value) {
+        this.PVZ = value;
+      };
+
+      Lohnsteuer2021.prototype.setR = function (value) {
+        this.R = value;
+      };
+
+      Lohnsteuer2021.prototype.setRe4 = function (value) {
+        this.RE4 = value;
+      };
+
+      Lohnsteuer2021.prototype.setSonstb = function (value) {
+        this.SONSTB = value;
+      };
+
+      Lohnsteuer2021.prototype.setSterbe = function (value) {
+        this.STERBE = value;
+      };
+
+      Lohnsteuer2021.prototype.setStkl = function (value) {
+        this.STKL = value;
+      };
+
+      Lohnsteuer2021.prototype.setVbez = function (value) {
+        this.VBEZ = value;
+      };
+
+      Lohnsteuer2021.prototype.setVbezm = function (value) {
+        this.VBEZM = value;
+      };
+
+      Lohnsteuer2021.prototype.setVbezs = function (value) {
+        this.VBEZS = value;
+      };
+
+      Lohnsteuer2021.prototype.setVbs = function (value) {
+        this.VBS = value;
+      };
+
+      Lohnsteuer2021.prototype.setVjahr = function (value) {
+        this.VJAHR = value;
+      };
+
+      Lohnsteuer2021.prototype.setVkapa = function (value) {
+        this.VKAPA = value;
+      };
+
+      Lohnsteuer2021.prototype.setVmt = function (value) {
+        this.VMT = value;
+      };
+
+      Lohnsteuer2021.prototype.setZkf = function (value) {
+        this.ZKF = value;
+      };
+
+      Lohnsteuer2021.prototype.setZmvb = function (value) {
+        this.ZMVB = value;
+      };
+
+      Lohnsteuer2021.prototype.setJre4ent = function (value) {
+        this.JRE4ENT = value;
+      };
+
+      Lohnsteuer2021.prototype.setSonstent = function (value) {
+        this.SONSTENT = value;
+      };
+
+      Lohnsteuer2021.prototype.getBk = function () {
+        return this.BK;
+      };
+
+      Lohnsteuer2021.prototype.getBks = function () {
+        return this.BKS;
+      };
+
+      Lohnsteuer2021.prototype.getBkv = function () {
+        return this.BKV;
+      };
+
+      Lohnsteuer2021.prototype.getLstlzz = function () {
+        return this.LSTLZZ;
+      };
+
+      Lohnsteuer2021.prototype.getSolzlzz = function () {
+        return this.SOLZLZZ;
+      };
+
+      Lohnsteuer2021.prototype.getSolzs = function () {
+        return this.SOLZS;
+      };
+
+      Lohnsteuer2021.prototype.getSolzv = function () {
+        return this.SOLZV;
+      };
+
+      Lohnsteuer2021.prototype.getSts = function () {
+        return this.STS;
+      };
+
+      Lohnsteuer2021.prototype.getStv = function () {
+        return this.STV;
+      };
+
+      Lohnsteuer2021.prototype.getVkvlzz = function () {
+        return this.VKVLZZ;
+      };
+
+      Lohnsteuer2021.prototype.getVkvsonst = function () {
+        return this.VKVSONST;
+      };
+
+      Lohnsteuer2021.prototype.getVfrb = function () {
+        return this.VFRB;
+      };
+
+      Lohnsteuer2021.prototype.getVfrbs1 = function () {
+        return this.VFRBS1;
+      };
+
+      Lohnsteuer2021.prototype.getVfrbs2 = function () {
+        return this.VFRBS2;
+      };
+
+      Lohnsteuer2021.prototype.getWvfrb = function () {
+        return this.WVFRB;
+      };
+
+      Lohnsteuer2021.prototype.getWvfrbo = function () {
+        return this.WVFRBO;
+      };
+
+      Lohnsteuer2021.prototype.getWvfrbm = function () {
+        return this.WVFRBM;
+      };
+
+      /**
+       * PROGRAMMABLAUFPLAN, PAP Seite 14
+       */
+      Lohnsteuer2021.prototype.MAIN = function () {
+        this.MPARA();
+        this.MRE4JL();
+        this.VBEZBSO = new bigDecimal(0);
+        this.KENNVMT = 0;
+        this.MRE4();
+        this.MRE4ABZ();
+        this.MBERECH();
+        this.MSONST();
+        this.MVMT();
+      };
+
+      /**
+       * Zuweisung von Werten für bestimmte Sozialversicherungsparameter  PAP Seite 15
+       */
+      Lohnsteuer2021.prototype.MPARA = function () {
+        if (this.KRV < 2) {
+          if (this.KRV == 0) {
+            this.BBGRV = new bigDecimal(85200);
+          } else {
+            this.BBGRV = new bigDecimal(80400);
+          }
+          this.RVSATZAN = new bigDecimal(0.093);
+          this.TBSVORV = new bigDecimal(0.84);
+        }
+        this.BBGKVPV = new bigDecimal(58050);
+        this.bd = new bigDecimal(2);
+        this.KVSATZAN = this.KVZ.divide(this.bd)
+          .divide(Lohnsteuer2021.ZAHL100)
+          .add(new bigDecimal(0.07));
+        this.KVSATZAG = new bigDecimal(parseFloat(0.0065 + 0.07).toFixed(2));
+        if (this.PVS == 1) {
+          this.PVSATZAN = new bigDecimal(0.02025);
+          this.PVSATZAG = new bigDecimal(0.01025);
+        } else {
+          this.PVSATZAN = new bigDecimal(0.01525);
+          this.PVSATZAG = new bigDecimal(0.01525);
+        }
+        if (this.PVZ == 1) {
+          this.PVSATZAN = this.PVSATZAN.add(new bigDecimal(0.0025));
+        }
+        this.W1STKL5 = new bigDecimal(11237);
+        this.W2STKL5 = new bigDecimal(28959);
+        this.W3STKL5 = new bigDecimal(219690);
+        this.GFB = new bigDecimal(9744);
+        this.SOLZFREI = new bigDecimal(16956);
+      };
+
+      /**
+       * Ermittlung des Jahresarbeitslohns nach § 39 b Abs. 2 Satz 2 EStG, PAP Seite 16
+       */
+      Lohnsteuer2021.prototype.MRE4JL = function () {
+        if (this.LZZ == 1) {
+          this.RE4 = new bigDecimal(this.RE4);
+          this.ZRE4J = this.RE4.divide(
+            Lohnsteuer2021.ZAHL100,
+            2,
+            bigDecimal.RoundingModes.DOWN
+          );
+          this.ZVBEZJ = this.VBEZ.divide(
+            Lohnsteuer2021.ZAHL100,
+            2,
+            bigDecimal.RoundingModes.DOWN
+          );
+          this.JLFREIB = this.LZZFREIB.divide(
+            Lohnsteuer2021.ZAHL100,
+            2,
+            bigDecimal.RoundingModes.DOWN
+          );
+          console.log("LZZHINZU", this.LZZHINZU);
+          this.LZZHINZU = new bigDecimal(this.LZZHINZU);
+          this.JLHINZU = this.LZZHINZU.divide(
+            Lohnsteuer2021.ZAHL100,
+            2,
+            bigDecimal.RoundingModes.DOWN
+          );
+        } else {
+          if (this.LZZ == 2) {
+            this.RE4 = new bigDecimal(this.RE4);
+            this.ZRE4J = this.RE4.multiply(Lohnsteuer2021.ZAHL12).divide(
+              Lohnsteuer2021.ZAHL100,
+              2,
+              bigDecimal.RoundingModes.DOWN
+            );
+            this.ZVBEZJ = this.VBEZ.multiply(Lohnsteuer2021.ZAHL12).divide(
+              Lohnsteuer2021.ZAHL100,
+              2,
+              bigDecimal.RoundingModes.DOWN
+            );
+            this.JLFREIB = this.LZZFREIB.multiply(Lohnsteuer2021.ZAHL12).divide(
+              Lohnsteuer2021.ZAHL100,
+              2,
+              bigDecimal.RoundingModes.DOWN
+            );
+            this.LZZHINZU = new bigDecimal(this.LZZHINZU);
+            this.JLHINZU = this.LZZHINZU.multiply(Lohnsteuer2021.ZAHL12).divide(
+              Lohnsteuer2021.ZAHL100,
+              2,
+              bigDecimal.RoundingModes.DOWN
+            );
+          } else {
+            if (this.LZZ == 3) {
+              this.ZRE4J = this.RE4.multiply(Lohnsteuer2021.ZAHL360).divide(
+                Lohnsteuer2021.ZAHL700,
+                2,
+                bigDecimal.RoundingModes.DOWN
+              );
+              this.ZVBEZJ = this.VBEZ.multiply(Lohnsteuer2021.ZAHL360).divide(
+                Lohnsteuer2021.ZAHL700,
+                2,
+                bigDecimal.RoundingModes.DOWN
+              );
+              this.JLFREIB = this.LZZFREIB.multiply(
+                Lohnsteuer2021.ZAHL360
+              ).divide(
+                Lohnsteuer2021.ZAHL700,
+                2,
+                bigDecimal.RoundingModes.DOWN
+              );
+              this.JLHINZU = this.LZZHINZU.multiply(
+                Lohnsteuer2021.ZAHL360
+              ).divide(
+                Lohnsteuer2021.ZAHL700,
+                2,
+                bigDecimal.RoundingModes.DOWN
+              );
+            } else {
+              this.ZRE4J = this.RE4.multiply(Lohnsteuer2021.ZAHL360).divide(
+                Lohnsteuer2021.ZAHL100,
+                2,
+                bigDecimal.RoundingModes.DOWN
+              );
+              this.ZVBEZJ = this.VBEZ.multiply(Lohnsteuer2021.ZAHL360).divide(
+                Lohnsteuer2021.ZAHL100,
+                2,
+                bigDecimal.RoundingModes.DOWN
+              );
+              this.JLFREIB = this.LZZFREIB.multiply(
+                Lohnsteuer2021.ZAHL360
+              ).divide(
+                Lohnsteuer2021.ZAHL100,
+                2,
+                bigDecimal.RoundingModes.DOWN
+              );
+              this.JLHINZU = this.LZZHINZU.multiply(
+                Lohnsteuer2021.ZAHL360
+              ).divide(
+                Lohnsteuer2021.ZAHL100,
+                2,
+                bigDecimal.RoundingModes.DOWN
+              );
+            }
+          }
+        }
+        if (this.af == 0) {
+          this.f = 1;
+        }
+      };
+
+      /**
+       * Freibeträge für Versorgungsbezüge, Altersentlastungsbetrag (§ 39b Abs. 2 Satz 3 EStG), PAP Seite 17
+       */
+      Lohnsteuer2021.prototype.MRE4 = function () {
+        if (this.ZVBEZJ.compareTo(new bigDecimal(0)) == 0) {
+          this.FVBZ = new bigDecimal(0);
+          this.FVB = new bigDecimal(0);
+          this.FVBZSO = new bigDecimal(0);
+          this.FVBSO = new bigDecimal(0);
+        } else {
+          if (this.VJAHR < 2006) {
+            this.J = 1;
+          } else {
+            if (this.VJAHR < 2040) {
+              this.J = this.VJAHR - 2004;
+            } else {
+              this.J = 36;
+            }
+          }
+          if (this.LZZ == 1) {
+            this.VBEZB =
+              this.VBEZM * new bigDecimal(this.ZMVB).valueOf().add(this.VBEZS);
+            this.HFVB =
+              Lohnsteuer2021.TAB2[this.J].divide(Lohnsteuer2021.ZAHL12) *
+              bigDecimal.valueOf(this.ZMVB);
+            this.FVBZ =
+              Lohnsteuer2021.TAB3[this.J].divide(Lohnsteuer2021.ZAHL12) *
+              bigDecimal.valueOf(this.ZMVB).round(0, bigDecimal.UP);
+          } else {
+            this.VBEZB = this.VBEZM.multiply(Lohnsteuer2021.ZAHL12)
+              .add(this.VBEZS)
+              .round(2, bigDecimal.RoundingModes.DOWN);
+            this.HFVB = Lohnsteuer2021.TAB2[this.J];
+            this.FVBZ = Lohnsteuer2021.TAB3[this.J];
+          }
+          this.FVB = this.VBEZB.multiply(Lohnsteuer2021.TAB1[this.J])
+            .divide(Lohnsteuer2021.ZAHL100)
+            .round(2, bigDecimal.UP);
+          if (this.FVB.compareTo(this.HFVB) == 1) {
+            this.FVB = this.HFVB;
+          }
+          if (this.FVB.compareTo(this.ZVBEZJ) == 1) {
+            this.FVB = this.ZVBEZJ;
+          }
+          this.FVBSO = this.FVB.add(
+            this.VBEZBSO.multiply(Lohnsteuer2021.TAB1[this.J]).divide(
+              Lohnsteuer2021.ZAHL100
+            )
+          ).round(2, bigDecimal.UP);
+          if (this.FVBSO.compareTo(Lohnsteuer2021.TAB2[this.J]) == 1) {
+            this.FVBSO = Lohnsteuer2021.TAB2[this.J];
+          }
+          this.HFVBZSO =
+            this.VBEZB.add(this.VBEZBSO).divide(Lohnsteuer2021.ZAHL100) -
+            this.FVBSO.round(2, bigDecimal.RoundingModes.DOWN);
+          this.FVBZSO = this.FVBZ.add(
+            this.VBEZBSO.divide(Lohnsteuer2021.ZAHL100)
+          ).round(0, bigDecimal.UP);
+          if (this.FVBZSO.compareTo(this.HFVBZSO) == 1) {
+            this.FVBZSO = this.HFVBZSO.DOWN(0, bigDecimal.UP);
+          }
+          if (this.FVBZSO.compareTo(Lohnsteuer2021.TAB3[this.J]) == 1) {
+            this.FVBZSO = Lohnsteuer2021.TAB3[this.J];
+          }
+          this.HFVBZ =
+            this.VBEZB.divide(Lohnsteuer2021.ZAHL100) -
+            this.FVB.round(2, bigDecimal.RoundingModes.DOWN);
+          if (this.FVBZ.compareTo(this.HFVBZ) == 1) {
+            this.FVBZ = this.HFVBZ.DOWN(0, bigDecimal.UP);
+          }
+        }
+        this.MRE4ALTE();
+      };
+
+      /**
+       * Altersentlastungsbetrag (§ 39b Abs. 2 Satz 3 EStG), PAP Seite 18
+       */
+      Lohnsteuer2021.prototype.MRE4ALTE = function () {
+        if (this.ALTER1 == 0) {
+          this.ALTE = new bigDecimal(0);
+        } else {
+          if (this.AJAHR < 2006) {
+            this.K = 1;
+          } else {
+            if (this.AJAHR < 2040) {
+              this.K = this.AJAHR - 2004;
+            } else {
+              this.K = 36;
+            }
+          }
+          this.BMG = this.ZRE4J - this.ZVBEZJ;
+          this.ALTE = this.BMG.multiply(Lohnsteuer2021.TAB4[this.K]).round(
+            0,
+            bigDecimal.UP
+          );
+          this.HBALTE = Lohnsteuer2021.TAB5[this.K];
+          if (this.ALTE.compareTo(this.HBALTE) == 1) {
+            this.ALTE = this.HBALTE;
+          }
+        }
+      };
+
+      /**
+       * Ermittlung des Jahresarbeitslohns nach Abzug der Freibeträge nach § 39 b Abs. 2 Satz 3 und 4 EStG, PAP Seite 20
+       */
+      Lohnsteuer2021.prototype.MRE4ABZ = function () {
+        this.ZRE4 = this.ZRE4J.subtract(this.FVB)
+          .subtract(this.ALTE)
+          .subtract(this.JLFREIB)
+          .add(this.JLHINZU)
+          .round(2, bigDecimal.RoundingModes.DOWN);
+        if (this.ZRE4.compareTo(new bigDecimal(0)) == -1) {
+          this.ZRE4 = new bigDecimal(0);
+        }
+        this.ZRE4VP = this.ZRE4J;
+        if (this.KENNVMT == 2) {
+          this.ZRE4VP =
+            this.ZRE4VP -
+            this.ENTSCH.divide(Lohnsteuer2021.ZAHL100).round(
+              2,
+              bigDecimal.RoundingModes.DOWN
+            );
+        }
+
+        this.ZVBEZ = new bigDecimal(
+          this.ZVBEZJ - this.FVB.round(2, bigDecimal.RoundingModes.DOWN)
+        );
+
+        if (this.ZVBEZ.compareTo(new bigDecimal(0)) == -1) {
+          this.ZVBEZ = new bigDecimal(0);
+        }
+        console.log("ZRE4", this.ZRE4);
+        console.log("ZRE4VP", this.ZRE4VP);
+      };
+
+      /**
+       * Berechnung fuer laufende Lohnzahlungszeitraueme Seite 21
+       */
+      Lohnsteuer2021.prototype.MBERECH = function () {
+        this.MZTABFB();
+        this.VFRB = this.ANP.add(this.FVB.add(this.FVBZ))
+          .multiply(Lohnsteuer2021.ZAHL100)
+          .round(0, bigDecimal.RoundingModes.DOWN);
+        this.MLSTJAHR();
+        this.WVFRB = this.ZVE.subtract(this.GFB)
+          .multiply(Lohnsteuer2021.ZAHL100)
+          .round(0, bigDecimal.RoundingModes.DOWN);
+
+        if (this.WVFRB.compareTo(new bigDecimal(0)) == -1) {
+          this.WVFRB = new bigDecimal(0);
+        }
+        this.LSTJAHR = this.ST.multiply(
+          new bigDecimal(this.f).round(0, bigDecimal.RoundingModes.DOWN)
+        );
+        this.UPLSTLZZ();
+        this.UPVKVLZZ();
+        if (this.ZKF.compareTo(new bigDecimal(0)) == 1) {
+          this.ZTABFB = this.ZTABFB.add(this.KFB);
+          this.MRE4ABZ();
+          this.MLSTJAHR();
+          this.JBMG = this.ST.multiply(new bigDecimal(this.f)).round(
+            0,
+            bigDecimal.RoundingModes.DOWN
+          );
+        } else {
+          this.JBMG = this.LSTJAHR;
+        }
+        console.log("LSTJAHR", this.LSTJAHR);
+
+        this.MSOLZ();
+      };
+
+      /**
+       * Ermittlung der festen Tabellenfreibeträge (ohne Vorsorgepauschale), PAP Seite 22
+       */
+      Lohnsteuer2021.prototype.MZTABFB = function () {
+        this.ANP = new bigDecimal(0);
+        if (
+          this.ZVBEZ.compareTo(new bigDecimal(0)) >= 0 &&
+          this.ZVBEZ.compareTo(this.FVBZ) == -1
+        ) {
+          this.FVBZ = bigDecimal.valueOf(this.ZVBEZ.longValue());
+        }
+        if (this.STKL < 6) {
+          if (this.ZVBEZ.compareTo(new bigDecimal(0)) == 1) {
+            if (
+              this.ZVBEZ - this.FVBZ.compareTo(bigDecimal.valueOf(102)) ==
+              -1
+            ) {
+              this.ANP = this.ZVBEZ - this.FVBZ.round(0, bigDecimal.UP);
+            } else {
+              this.ANP = bigDecimal.valueOf(102);
+            }
+          }
+        } else {
+          this.FVBZ = bigDecimal.valueOf(0);
+          this.FVBZSO = bigDecimal.valueOf(0);
+        }
+        if (this.STKL < 6) {
+          if (this.ZRE4.compareTo(this.ZVBEZ) == 1) {
+            if (
+              this.ZRE4 - this.ZVBEZ.compareTo(Lohnsteuer2021.ZAHL1000) ==
+              -1
+            ) {
+              this.ANP =
+                this.ANP.add(this.ZRE4) - this.ZVBEZ.round(0, bigDecimal.UP);
+            } else {
+              this.ANP = this.ANP.add(Lohnsteuer2021.ZAHL1000);
+            }
+          }
+        }
+        this.KZTAB = 1;
+        if (this.STKL == 1) {
+          this.SAP = new bigDecimal(36);
+          this.KFB =
+            this.ZKF *
+            bigDecimal.valueOf(8388).round(0, bigDecimal.RoundingModes.DOWN);
+        } else {
+          if (this.STKL == 2) {
+            this.EFA = bigDecimal.valueOf(1908);
+            this.SAP = new bigDecimal(36);
+            this.KFB =
+              this.ZKF *
+              bigDecimal.valueOf(8388).round(0, bigDecimal.RoundingModes.DOWN);
+          } else {
+            if (this.STKL == 3) {
+              this.KZTAB = 2;
+              this.SAP = new bigDecimal(36);
+              this.KFB =
+                this.ZKF *
+                bigDecimal
+                  .valueOf(8388)
+                  .round(0, bigDecimal.RoundingModes.DOWN);
+            } else {
+              if (this.STKL == 4) {
+                this.SAP = new bigDecimal(36);
+                this.KFB =
+                  this.ZKF *
+                  bigDecimal
+                    .valueOf(4194)
+                    .round(0, bigDecimal.RoundingModes.DOWN);
+              } else {
+                if (this.STKL == 5) {
+                  this.SAP = new bigDecimal(36);
+                  this.KFB = new bigDecimal(0);
+                } else {
+                  this.KFB = new bigDecimal(0);
+                }
+              }
+            }
+          }
+        }
+
+        this.ZTABFB = this.EFA.add(this.ANP)
+          .add(this.SAP)
+          .add(this.FVBZ)
+          .round(2, bigDecimal.RoundingModes.DOWN);
+      };
+
+      /**
+       * Ermittlung Jahreslohnsteuer, PAP Seite 23
+       */
+      Lohnsteuer2021.prototype.MLSTJAHR = function () {
+        this.UPEVP();
+        if (this.KENNVMT != 1) {
+          this.ZVE = this.ZRE4.subtract(this.ZTABFB).subtract(
+            this.VSP.round(2, bigDecimal.RoundingModes.DOWN)
+          );
+          console.log("VSP", this.VSP);
+          this.UPMLST(); //Hier wird die STeuer gesetzt
+        } else {
+          this.ZVE =
+            this.ZRE4 -
+            this.ZTABFB -
+            this.VSP -
+            this.VMT.divide(Lohnsteuer2021.ZAHL100) -
+            this.VKAPA.divide(Lohnsteuer2021.ZAHL100).round(
+              2,
+              bigDecimal.RoundingModes.DOWN
+            );
+          if (this.ZVE.compareTo(new bigDecimal(0)) == -1) {
+            this.ZVE = this.ZVE.add(this.VMT.divide(Lohnsteuer2021.ZAHL100))
+              .add(this.VKAPA.divide(Lohnsteuer2021.ZAHL100))
+              .divide(Lohnsteuer2021.ZAHL5)
+              .round(2, bigDecimal.RoundingModes.DOWN);
+            this.UPMLST();
+            this.ST = this.ST.multiply(Lohnsteuer2021.ZAHL5).round(
+              0,
+              bigDecimal.RoundingModes.DOWN
+            );
+          } else {
+            this.UPMLST();
+            this.STOVMT = this.ST;
+            this.ZVE = this.ZVE.add(
+              this.VMT.add(this.VKAPA).divide(Lohnsteuer2021.ZAHL500)
+            ).round(2, bigDecimal.RoundingModes.DOWN);
+            this.UPMLST();
+            this.ST =
+              this.ST -
+              this.STOVMT.multiply(Lohnsteuer2021.ZAHL5)
+                .add(this.STOVMT)
+                .round(0, bigDecimal.RoundingModes.DOWN);
+          }
+        }
+      };
+
+      /**
+       * PAP Seite 24
+       */
+      Lohnsteuer2021.prototype.UPVKVLZZ = function () {
+        this.UPVKV();
+
+        this.JW = this.VKV;
+        this.UPANTEIL();
+
+        this.VKVLZZ = this.ANTEIL1;
+      };
+
+      /**
+       * PAP Seite 24
+       */
+      Lohnsteuer2021.prototype.UPVKV = function () {
+        if (this.PKV > 0) {
+          if (this.VSP2.compareTo(this.VSP3) == 1) {
+            this.VKV = this.VSP2.multiply(Lohnsteuer2021.ZAHL100);
+          } else {
+            this.VKV = this.VSP3.multiply(Lohnsteuer2021.ZAHL100);
+          }
+        } else {
+          this.VKV = new bigDecimal(0);
+        }
+      };
+
+      /**
+       * PAP Seite 25
+       */
+      Lohnsteuer2021.prototype.UPLSTLZZ = function () {
+        this.LSTJAHR = this.LSTJAHR;
+        this.JW = this.LSTJAHR.multiply(Lohnsteuer2021.ZAHL100);
+        this.UPANTEIL();
+
+        this.LSTLZZ = this.ANTEIL1;
+        console.log("LSTLZZ", this.LSTLZZ);
+      };
+
+      /**
+       * Ermittlung der Jahreslohnsteuer aus dem Einkommensteuertarif. PAP Seite 26
+       */
+      Lohnsteuer2021.prototype.UPMLST = function () {
+        if (this.ZVE.compareTo(Lohnsteuer2021.ZAHL1) == -1) {
+          this.ZVE = new bigDecimal(0);
+          this.X = new bigDecimal(0);
+        } else {
+          this.X = this.ZVE.divide(new bigDecimal(this.KZTAB)).round(
+            0,
+            bigDecimal.RoundingModes.DOWN
+          );
+          console.log("ZVE", this.ZVE);
+        }
+        if (this.STKL < 5) {
+          this.UPTAB21(); //Hier wird die Steuer wirklich gesetzt
+        } else {
+          this.MST5_6();
+        }
+      };
+
+      /**
+       * Vorsorgepauschale (§ 39b Absatz 2 Satz 5 Nummer 3 und Absatz 4 EStG) PAP Seite 27
+       */
+      Lohnsteuer2021.prototype.UPEVP = function () {
+        if (this.KRV > 1) {
+          this.VSP1 = new bigDecimal(0);
+        } else {
+          if (this.ZRE4VP.compareTo(this.BBGRV) == 1) {
+            this.ZRE4VP = this.BBGRV;
+          }
+          console.log("this.TBSVORV", this.TBSVORV);
+          this.VSP1 = this.TBSVORV.multiply(this.ZRE4VP).round(
+            2,
+            bigDecimal.RoundingModes.DOWN
+          );
+          console.log("VSP1", this.VSP1);
+
+          this.VSP1 = this.VSP1.multiply(this.RVSATZAN).round(
+            2,
+            bigDecimal.RoundingModes.DOWN
+          );
+        }
+        this.VSP2 = this.ZRE4VP.multiply(
+          new bigDecimal(0.12).round(2, bigDecimal.RoundingModes.DOWN)
+        );
+        if (this.STKL == 3) {
+          this.VHB = BigInt(3000);
+        } else {
+          this.VHB = BigInt(1900);
+        }
+        if (this.VSP2.compareTo(new bigDecimal(this.VHB)) == 1) {
+          this.VSP2 = new bigDecimal(this.VHB);
+        }
+        this.VSPN = this.VSP1.add(this.VSP2).round(
+          0,
+          bigDecimal.RoundingModes.UP
+        );
+        this.MVSP();
+        if (this.VSPN.compareTo(this.VSP) == 1) {
+          this.VSP = this.VSPN.round(2, bigDecimal.RoundingModes.DOWN);
+        }
+      };
+
+      /**
+       * Vorsorgepauschale (§39b Abs. 2 Satz 5 Nr 3 EStG) Vergleichsberechnung fuer Guenstigerpruefung, PAP Seite 28
+       */
+      Lohnsteuer2021.prototype.MVSP = function () {
+        if (this.ZRE4VP.compareTo(this.BBGKVPV) == 1) {
+          this.ZRE4VP = this.BBGKVPV;
+        }
+        if (this.PKV > 0) {
+          if (this.STKL == 6) {
+            this.VSP3 = new bigDecimal(0);
+          } else {
+            this.VSP3 = this.PKPV.multiply(Lohnsteuer2021.ZAHL12).divide(
+              Lohnsteuer2021.ZAHL100
+            );
+            if (this.PKV == 2) {
+              this.VSP3 =
+                this.VSP3 -
+                (this.ZRE4VP * this.KVSATZAG.add(this.PVSATZAG)).round(
+                  2,
+                  bigDecimal.RoundingModes.DOWN
+                );
+            }
+          }
+        } else {
+          this.VSP3 = this.ZRE4VP.multiply(
+            this.KVSATZAN.add(this.PVSATZAN)
+          ).round(2, bigDecimal.RoundingModes.DOWN);
+        }
+        this.VSP = this.VSP3.add(this.VSP1).round(
+          0,
+          bigDecimal.RoundingModes.UP
+        );
+      };
+
+      /**
+       * Lohnsteuer fuer die Steuerklassen V und VI (§ 39b Abs. 2 Satz 7 EStG), PAP Seite 29
+       */
+      Lohnsteuer2021.prototype.MST5_6 = function () {
+        this.ZZX = this.X;
+        if (this.ZZX.compareTo(this.W2STKL5) == 1) {
+          this.ZX = this.W2STKL5;
+          this.UP5_6();
+          if (this.ZZX.compareTo(this.W3STKL5) == 1) {
+            this.ST = this.ST.add(
+              this.W3STKL5 - this.W2STKL5 * bigDecimal.valueOf(0.42)
+            ).round(0, bigDecimal.RoundingModes.DOWN);
+            this.ST = this.ST.add(
+              this.ZZX - this.W3STKL5 * bigDecimal.valueOf(0.45)
+            ).round(0, bigDecimal.RoundingModes.DOWN);
+          } else {
+            this.ST = this.ST.add(
+              this.ZZX - this.W2STKL5 * bigDecimal.valueOf(0.42)
+            ).round(0, bigDecimal.RoundingModes.DOWN);
+          }
+        } else {
+          this.ZX = this.ZZX;
+          this.UP5_6();
+          if (this.ZZX.compareTo(this.W1STKL5) == 1) {
+            this.VERGL = this.ST;
+            this.ZX = this.W1STKL5;
+            this.UP5_6();
+            this.HOCH = this.ST.add(
+              this.ZZX - this.W1STKL5 * bigDecimal.valueOf(0.42)
+            ).round(0, bigDecimal.RoundingModes.DOWN);
+            if (this.HOCH.compareTo(this.VERGL) == -1) {
+              this.ST = this.HOCH;
+            } else {
+              this.ST = this.VERGL;
+            }
+          }
+        }
+      };
+
+      /**
+       * Unterprogramm zur Lohnsteuer fuer die Steuerklassen V und VI (§ 39b Abs. 2 Satz 7 EStG), PAP Seite 30
+       */
+      Lohnsteuer2021.prototype.UP5_6 = function () {
+        this.X =
+          this.ZX *
+          bigDecimal.valueOf(1.25).round(2, bigDecimal.RoundingModes.DOWN);
+        this.UPTAB21();
+        this.ST1 = this.ST;
+        this.X =
+          this.ZX *
+          bigDecimal.valueOf(0.75).round(2, bigDecimal.RoundingModes.DOWN);
+        this.UPTAB21();
+        this.ST2 = this.ST;
+        this.DIFF = this.ST1 - this.ST2.multiply(Lohnsteuer2021.ZAHL2);
+        this.MIST =
+          this.ZX *
+          bigDecimal.valueOf(0.14).round(0, bigDecimal.RoundingModes.DOWN);
+        if (this.MIST.compareTo(this.DIFF) == 1) {
+          this.ST = this.MIST;
+        } else {
+          this.ST = this.DIFF;
+        }
+      };
+
+      /**
+       * Solidaritaetszuschlag, PAP Seite 31
+       */
+      Lohnsteuer2021.prototype.MSOLZ = function () {
+        this.SOLZFREI = this.SOLZFREI.multiply(new bigDecimal(this.KZTAB));
+        if (this.JBMG.compareTo(this.SOLZFREI) == 1) {
+          let numJMBG = (this.SOLZJ =
+            this.JBMG *
+            bigDecimal
+              .valueOf(5.5)
+              .divide(Lohnsteuer2021.ZAHL100)
+              .round(2, bigDecimal.RoundingModes.RoundingModes.DOWN));
+          this.SOLZMIN =
+            this.JBMG -
+            this.SOLZFREI *
+              bigDecimal
+                .valueOf(11.9)
+                .divide(Lohnsteuer2021.ZAHL100)
+                .round(2, bigDecimal.RoundingModes.RoundingModes.DOWN);
+          if (this.SOLZMIN.compareTo(this.SOLZJ) == -1) {
+            this.SOLZJ = this.SOLZMIN;
+          }
+
+          this.JW = this.SOLZJ.multiply(Lohnsteuer2021.ZAHL100).toFixed(
+            0,
+            bigDecimal.RoundingModes.DOWN
+          );
+          this.UPANTEIL();
+
+          this.SOLZLZZ = this.ANTEIL1;
+        } else {
+          this.SOLZLZZ = new bigDecimal(0);
+        }
+        if (this.R > 0) {
+          this.JW = this.JBMG.multiply(Lohnsteuer2021.ZAHL100);
+          this.UPANTEIL();
+
+          this.BK = this.ANTEIL1;
+        } else {
+          this.BK = new bigDecimal(0);
+        }
+      };
+
+      /**
+       * Anteil von Jahresbetraegen fuer einen LZZ (§ 39b Abs. 2 Satz 9 EStG), PAP Seite 32
+       */
+      Lohnsteuer2021.prototype.UPANTEIL = function () {
+        if (this.LZZ == 1) {
+          this.ANTEIL1 = this.JW;
+        } else {
+          if (this.LZZ == 2) {
+            this.ANTEIL1 = this.JW.divide(
+              Lohnsteuer2021.ZAHL12,
+              0,
+              bigDecimal.RoundingModes.DOWN
+            );
+            console.log("ANTEIL1", this.ANTEIL1);
+          } else {
+            if (this.LZZ == 3) {
+              this.ANTEIL1 = this.JW.multiply(Lohnsteuer2021.ZAHL7).divide(
+                Lohnsteuer2021.ZAHL360,
+                0,
+                bigDecimal.RoundingModes.DOWN
+              );
+            } else {
+              this.ANTEIL1 = this.JW.divide(
+                Lohnsteuer2021.ZAHL360,
+                0,
+                bigDecimal.RoundingModes.DOWN
+              );
+            }
+          }
+        }
+      };
+
+      /**
+       * Berechnung sonstiger Bezuege nach § 39b Abs. 3 Saetze 1 bis 8 EStG), PAP Seite 33
+       */
+      Lohnsteuer2021.prototype.MSONST = function () {
+        this.LZZ = 1;
+        if (this.ZMVB == 0) {
+          this.ZMVB = 12;
+        }
+        if (this.SONSTB.compareTo(new bigDecimal(0)) == 0) {
+          this.VKVSONST = new bigDecimal(0);
+          this.LSTSO = new bigDecimal(0);
+          this.STS = new bigDecimal(0);
+          this.SOLZS = new bigDecimal(0);
+          this.BKS = new bigDecimal(0);
+        } else {
+          this.MOSONST();
+          this.UPVKV();
+          this.VKVSONST = this.VKV;
+          this.ZRE4J = this.JRE4.add(this.SONSTB)
+            .divide(Lohnsteuer2021.ZAHL100)
+            .round(2, bigDecimal.RoundingModes.DOWN);
+          this.ZVBEZJ = this.JVBEZ.add(this.VBS)
+            .divide(Lohnsteuer2021.ZAHL100)
+            .round(2, bigDecimal.RoundingModes.DOWN);
+          this.VBEZBSO = this.STERBE;
+          this.MRE4SONST();
+          this.MLSTJAHR();
+          this.WVFRBM =
+            this.ZVE -
+            this.GFB.multiply(Lohnsteuer2021.ZAHL100).round(
+              2,
+              bigDecimal.RoundingModes.DOWN
+            );
+          if (this.WVFRBM.compareTo(new bigDecimal(0)) == -1) {
+            this.WVFRBM = new bigDecimal(0);
+          }
+          this.UPVKV();
+          this.VKVSONST = this.VKV - this.VKVSONST;
+          this.LSTSO = this.ST.multiply(Lohnsteuer2021.ZAHL100);
+          this.STS =
+            this.LSTSO -
+            this.LSTOSO *
+              bigDecimal
+                .valueOf(this.f)
+                .divide(
+                  Lohnsteuer2021.ZAHL100,
+                  0,
+                  bigDecimal.RoundingModes.DOWN
+                )
+                .multiply(Lohnsteuer2021.ZAHL100);
+          if (this.STS.compareTo(new bigDecimal(0)) == -1) {
+            this.STS = new bigDecimal(0);
+          }
+          this.MSOLZSTS();
+          if (this.R > 0) {
+            this.BKS = this.STS;
+          } else {
+            this.BKS = new bigDecimal(0);
+          }
+        }
+      };
+
+      /**
+       * Berechnung des SolZ auf sonstige Bezüge, PAP Seite 34, Neu ab 2021
+       */
+      Lohnsteuer2021.prototype.MSOLZSTS = function () {
+        if (this.ZKF.compareTo(new bigDecimal(0)) == 1) {
+          this.SOLZSZVE = this.ZVE - this.KFB;
+        } else {
+          this.SOLZSZVE = this.ZVE;
+        }
+        if (this.SOLZSZVE.compareTo(bigDecimal.ONE()) == -1) {
+          this.SOLZSZVE = new bigDecimal(0);
+          this.X = new bigDecimal(0);
+        } else {
+          this.X =
+            this.SOLZSZVE /
+            (bigDecimal.valueOf(this.KZTAB), 0, bigDecimal.RoundingModes.DOWN);
+        }
+        if (this.STKL < 5) {
+          this.UPTAB21();
+        } else {
+          this.MST5_6();
+        }
+        this.SOLZSBMG =
+          this.ST *
+          bigDecimal.valueOf(this.f).round(0, bigDecimal.RoundingModes.DOWN);
+        if (this.SOLZSBMG.compareTo(this.SOLZFREI) == 1) {
+          this.SOLZS =
+            this.STS *
+            bigDecimal
+              .valueOf(5.5)
+              .divide(Lohnsteuer2021.ZAHL100, 0, bigDecimal.RoundingModes.DOWN);
+        } else {
+          this.SOLZS = new bigDecimal(0);
+        }
+      };
+
+      /**
+       * Berechnung der Verguetung fuer mehrjaehrige Taetigkeit nach § 39b Abs. 3 Satz 9 und 10 EStG), PAP Seite 35
+       */
+      Lohnsteuer2021.prototype.MVMT = function () {
+        if (this.VKAPA.compareTo(new bigDecimal(0)) == -1) {
+          this.VKAPA = new bigDecimal(0);
+        }
+        if (this.VMT.add(this.VKAPA).compareTo(new bigDecimal(0)) == 1) {
+          if (this.LSTSO.compareTo(new bigDecimal(0)) == 0) {
+            this.MOSONST();
+            this.LST1 = this.LSTOSO;
+          } else {
+            this.LST1 = this.LSTSO;
+          }
+          this.VBEZBSO = this.STERBE.add(this.VKAPA);
+          this.ZRE4J = this.JRE4.add(this.SONSTB)
+            .add(this.VMT)
+            .add(this.VKAPA)
+            .divide(Lohnsteuer2021.ZAHL100)
+            .round(2, bigDecimal.RoundingModes.DOWN);
+          this.ZVBEZJ = this.JVBEZ.add(this.VBS)
+            .add(this.VKAPA)
+            .divide(Lohnsteuer2021.ZAHL100)
+            .round(2, bigDecimal.RoundingModes.DOWN);
+          this.KENNVMT = 2;
+          this.MRE4SONST();
+          this.MLSTJAHR();
+          this.LST3 = this.ST.multiply(Lohnsteuer2021.ZAHL100);
+          this.MRE4ABZ();
+          this.ZRE4VP =
+            this.ZRE4VP -
+            this.JRE4ENT.divide(Lohnsteuer2021.ZAHL100) -
+            this.SONSTENT.divide(Lohnsteuer2021.ZAHL100);
+          this.KENNVMT = 1;
+          this.MLSTJAHR();
+          this.LST2 = this.ST.multiply(Lohnsteuer2021.ZAHL100);
+          this.STV = this.LST2 - this.LST1;
+
+          this.LST3 = this.LST3 - this.LST1;
+          if (this.LST3.compareTo(this.STV) == -1) {
+            this.STV = this.LST3;
+          }
+          if (this.STV.compareTo(new bigDecimal(0)) == -1) {
+            this.STV = new bigDecimal(0);
+          } else {
+            this.STV =
+              this.STV *
+              bigDecimal
+                .valueOf(this.f)
+                .divide(
+                  Lohnsteuer2021.ZAHL100,
+                  0,
+                  bigDecimal.RoundingModes.DOWN
+                )
+                .multiply(Lohnsteuer2021.ZAHL100);
+          }
+          this.SOLZVBMG = this.STV.divide(
+            Lohnsteuer2021.ZAHL100,
+            0,
+            bigDecimal.RoundingModes.DOWN
+          ).add(this.JBMG);
+          if (this.SOLZVBMG.compareTo(this.SOLZFREI) == 1) {
+            this.SOLZV =
+              this.STV *
+              bigDecimal
+                .valueOf(5.5)
+                .divide(
+                  Lohnsteuer2021.ZAHL100,
+                  0,
+                  bigDecimal.RoundingModes.DOWN
+                );
+          } else {
+            this.SOLZV = new bigDecimal(0);
+          }
+          if (this.R > 0) {
+            this.BKV = this.STV;
+          } else {
+            this.BKV = new bigDecimal(0);
+          }
+        } else {
+          this.STV = new bigDecimal(0);
+          this.SOLZV = new bigDecimal(0);
+          this.BKV = new bigDecimal(0);
+        }
+      };
+
+      /**
+       * Sonderberechnung ohne sonstige Bezüge für Berechnung bei sonstigen Bezügen oder Vergütung für mehrjährige Tätigkeit, PAP Seite 36
+       */
+      Lohnsteuer2021.prototype.MOSONST = function () {
+        this.ZRE4J = this.JRE4.divide(Lohnsteuer2021.ZAHL100).round(
+          2,
+          bigDecimal.RoundingModes.DOWN
+        );
+        this.ZVBEZJ = this.JVBEZ.divide(Lohnsteuer2021.ZAHL100).round(
+          2,
+          bigDecimal.RoundingModes.DOWN
+        );
+        this.JLFREIB = this.JFREIB.divide(
+          Lohnsteuer2021.ZAHL100,
+          2,
+          bigDecimal.RoundingModes.DOWN
+        );
+        this.JLHINZU = this.JHINZU.divide(
+          Lohnsteuer2021.ZAHL100,
+          2,
+          bigDecimal.RoundingModes.DOWN
+        );
+        this.MRE4();
+        this.MRE4ABZ();
+        this.ZRE4VP = this.ZRE4VP - this.JRE4ENT.divide(Lohnsteuer2021.ZAHL100);
+        this.MZTABFB();
+        this.VFRBS1 = this.ANP.add(this.FVB.add(this.FVBZ))
+          .multiply(Lohnsteuer2021.ZAHL100)
+          .round(2, bigDecimal.RoundingModes.DOWN);
+        this.MLSTJAHR();
+        this.WVFRBO =
+          this.ZVE -
+          this.GFB.multiply(Lohnsteuer2021.ZAHL100).round(
+            2,
+            bigDecimal.RoundingModes.DOWN
+          );
+        if (this.WVFRBO.compareTo(new bigDecimal(0)) == -1) {
+          this.WVFRBO = new bigDecimal(0);
+        }
+        this.LSTOSO = this.ST.multiply(Lohnsteuer2021.ZAHL100);
+      };
+
+      /**
+       * Sonderberechnung mit sonstige Bezüge für Berechnung bei sonstigen Bezügen oder Vergütung für mehrjährige Tätigkeit, PAP Seite 37
+       */
+      Lohnsteuer2021.prototype.MRE4SONST = function () {
+        this.MRE4();
+        this.FVB = this.FVBSO;
+        this.MRE4ABZ();
+        this.ZRE4VP =
+          this.ZRE4VP -
+          this.JRE4ENT.divide(Lohnsteuer2021.ZAHL100) -
+          this.SONSTENT.divide(Lohnsteuer2021.ZAHL100);
+        this.FVBZ = this.FVBZSO;
+        this.MZTABFB();
+        this.VFRBS2 =
+          this.ANP.add(this.FVB)
+            .add(this.FVBZ)
+            .multiply(Lohnsteuer2021.ZAHL100) - this.VFRBS1;
+      };
+
+      /**
+       * Tarifliche Einkommensteuer §32a EStG, PAP Seite 38
+       */
+      Lohnsteuer2021.prototype.UPTAB21 = function () {
+        if (this.X.compareTo(this.GFB.add(Lohnsteuer2021.ZAHL1)) == -1) {
+          this.ST = new bigDecimal(0);
+          //Wir sind in diesem Zustand
+        } else {
+          if (this.X.compareTo(new bigDecimal(14754)) == -1) {
+            this.Y = this.X.subtract(
+              this.GFB.divide(
+                Lohnsteuer2021.ZAHL10000,
+                6,
+                bigDecimal.RoundingModes.DOWN
+              )
+            );
+            this.RW = this.Y * new bigDecimal(995.21).valueOf();
+            this.RW = this.RW + new bigDecimal(1400).valueOf();
+            this.ST = this.RW * this.Y.round(0, bigDecimal.RoundingModes.DOWN);
+          } else {
+            if (this.X.compareTo(new bigDecimal(57919).valueOf()) == -1) {
+              this.Y = this.X.subtract(new bigDecimal(14753)).divide(
+                Lohnsteuer2021.ZAHL10000,
+                6,
+                bigDecimal.RoundingModes.DOWN
+              );
+              this.RW = this.Y.multiply(new bigDecimal(208.85).valueOf());
+              this.RW = this.RW.add(new bigDecimal(2397).valueOf());
+              this.RW = this.RW.multiply(this.Y);
+              this.ST = this.RW.add(new bigDecimal(950.96).valueOf()).round(
+                0,
+                bigDecimal.RoundingModes.DOWN
+              );
+            } else {
+              if (this.X.compareTo(bigDecimal.valueOf(274613)) == -1) {
+                this.ST = this.X.multiplay(bigDecimal.valueOf(0.42))
+                  .subtract(new bigDecimal(9136.63))
+                  .round(0, bigDecimal.RoundingModes.DOWN);
+              } else {
+                this.ST =
+                  this.X * bigDecimal.valueOf(0.45) -
+                  bigDecimal
+                    .valueOf(17374.99)
+                    .round(0, bigDecimal.RoundingModes.DOWN);
+              }
+            }
+          }
+        }
+        this.ST = this.ST.multiply(new bigDecimal(this.KZTAB));
+      };
+
+      /*
+//LSTLZZ -> ANTEIL1 -> JW
+{RE4:grossValue,PKV:1,
+        PVS:0,
+        PVZ:0,
+        STKL:steuerKlasse,
+        LZZ:lzz,
+        KRV:2,
+      f: faktorVerfahren}
+      */
+
+      //-----------------------------------------------Lohnsteuerrechner------------------------------------------//
+
       let msgArray = [];
       var cbl = new (function () {
         var self = this;
@@ -930,9 +3308,15 @@
         let netSalary = 0;
         let bundesLand = "";
         let children = 0;
-
+        let steuerKlasse = 0;
+        let lzz = 2;
+        let faktorVerfahren = 0;
+        let married = false;
+        let kirchensteuer = 0;
         s.begin(() => {
-          s.set("condition", cbl.random_item(["nudging", "control"]));
+          //  cbl.set("say_method", "browser_tts");
+          console.log(new bigDecimal(1));
+          s.set("condition", cbl.random_item(["nudging", "control", "privacy_priming"]));
           $("#survey_form").append(
             '<input type="hidden" name="condition" value="' +
               s.get("condition") +
@@ -948,7 +3332,7 @@
             );
             s.ready(() => {
               $("#hint").html(
-                "Du kannst mit <b>Ja</b> oder <b>Nein</b> antworten."
+                "Du kannst mit <b>'Ja'</b> oder <b>'Nein'</b> antworten."
               );
             });
           });
@@ -977,13 +3361,13 @@
             s.say(
               `Alles klar. Ich kann die Lohnsteuer für Arbeitnehmer berechnen. Dazu stelle ich dir einige Fragen zur Steuerklasse, Kirchenbeträgen oder auch deinem Alter. In der Berechnung gehe ich davon aus, dass du gesetzlich versichert bist und keine weiteren geldwerten Vorteile angeben willst.`
             );
-            s.pause(6000);
+            // s.pause(6000);
 
             s.say(
               "Außerdem hast du die Möglichkeit, deine Daten zu speichern oder dir die Ergebnisse per E-Mail zusenden zu lassen. Hierfür benötige ich natürlich deine Erlaubnis. Diese kannst du in der Alexa App freigeben."
               //
             );
-            s.pause(6000);
+            // s.pause(6000);
 
             s.say(
               `Wenn du später nochmal die Einführung hören willst, sage einfach "Alexa, Hilfe". Das war's auch schon. Für welchen Betrag möchtest du den Nettowert wissen?`
@@ -1012,31 +3396,58 @@
           ss.match(/^[4-9][5-9][0-9]|\d{3,}/im, () => {
             $("#hint").html("");
             grossValue = parseInt(msgArray.slice(-1).pop());
-            netSalary = grossValue;
+            console.log(grossValue);
+
             if (grossValue > 15000) {
               s.run("annualIncome");
             } else {
               s.say(
                 `Alles klar! ${grossValue} Euro Bruttogehalt. Wie ist deine Steuerklasse?`
               );
+              s.run("taxClass");
+            }
+
+            /* switch(grossValue){
+              case grossValue <= 9984:
+                  netSalary = grossValue;
+                  s.run("taxClass");
+              break;
+              case grossValue >= 9985 && grossValue <= 14926:
+                  let yFaktor = (grossValue - 9984)/ 10000;
+                  netSalary = grossValue - (1008,7 * yFaktor + 1400) * yFaktor;
+                  s.run("taxClass");
+              break;
+              case grossValue >= 14927 && grossValue <= 58596:
+                  let zFaktor = (grossValue - 14926)/ 10000;
+                  netSalary = grossValue - (206,43 * zFaktor + 2397) * zFaktor + 938,24;
+                  s.run("annualIncome");
+              break;
+              case grossValue >= 58597 && grossValue <= 277825:
+                  netSalary = grossValue - ((0.42 * grossValue) - 9267.53);
+                  s.run("annualIncome");
+              break;
+            }*/
+
+            /*if (grossValue > 15000) {
+              s.run("annualIncome");
+            } else {
+              
               s.ready(() => {
                 s.run("taxClass");
               });
-            }
+            }*/
           });
 
           s.sub("annualIncome", (ss) => {
             ss.begin(() => {
               s.set("voice", "Mary");
-              s.say("Ist dein Gehalt ein Jahreseinkommen?", {
-                method: "browser_tts",
-              });
-              $("#hint").html("Gib bitte <b>Ja</b> oder <b>Nein</b> ein.");
+              s.say("Ist dein Gehalt ein Jahreseinkommen?");
+              $("#hint").html("Gib bitte <b>'Ja'</b> oder <b>'Nein'</b> ein.");
             });
 
             ss.match(/ja/i, () => {
               $("#hint").html("");
-              netSalary = grossValue / 12;
+              lzz = 1;
               s.say("Alles klar. Wie ist deine Steuerklasse?");
               s.ready(() => {
                 s.run("taxClass");
@@ -1045,10 +3456,8 @@
 
             ss.match(/nein/i, () => {
               $("#hint").html("");
-              netSalary = grossValue;
-              s.say("Alles klar. Wie ist deine Steuerklasse?", {
-                method: "browser_tts",
-              });
+              lzz = 2;
+              s.say("Alles klar. Wie ist deine Steuerklasse?");
               s.ready(() => {
                 s.run("taxClass");
               });
@@ -1076,36 +3485,13 @@
               "Bitte geben Sie einen Wert zwischen <b>1</b> und <b>6</b> an oder gebe <b>'keine Ahnung'</b> ein, wenn du deine Steuerklasse nicht kennst."
             );
           });
-
+          //https://www.bmf-steuerrechner.de/ekst/eingabeformekst.xhtml?ekst-result=true
           let taxClassRegex = new RegExp(/^[1-6]?$|6/im);
           ss.match(taxClassRegex, () => {
             $("#hint").html("");
 
             let taxClass = msgArray.slice(-1).pop();
-            switch (parseInt(taxClass)) {
-              case 1:
-              case 4:
-                netSalary -= grossValue * 0.1887;
-                console.log("SK 1/ 4");
-                break;
-              case 2:
-                netSalary -= grossValue * 0.164;
-                console.log("SK 2");
-                break;
-              case 3:
-                netSalary -= grossValue * 0.1119;
-                console.log("SK 3");
-                break;
-              case 5:
-                netSalary -= grossValue * 0.2806;
-                console.log("SK 5");
-                break;
-              case 6:
-                netSalary -= grossValue * 0.2884;
-                console.log("SK 6");
-                break;
-            }
-            console.log("Net salary after taxes", netSalary);
+            steuerKlasse = taxClass;
             s.ready(() => {
               s.run("children");
             });
@@ -1135,12 +3521,19 @@
               s.say(
                 "Kein Problem. Ich helfe dir dabei. Handelt es sich um ein Haupt- oder Nebeneinkommen?"
               );
-              $("#hint").html("");
+              s.ready(() => {
+                $("#hint").html(
+                  "Du kannst der Einfachheit halber <b>'haupt'</b> bzw <b>'neben'</b> eingeben."
+                );
+              });
             });
 
             ss.match(/haupt/i, () => {
               s.say("Alles klar! Bist du denn verheiratet?");
               s.ready(() => {
+                s.ready(() => {
+                  $("#hint").html("Gib <b>'ja'</b> bzw <b>'nein'</b> ein.");
+                });
                 s.run("married");
               });
             });
@@ -1152,18 +3545,21 @@
               });
 
               ss.match(/ja/i, () => {
+                $("#hint").html("");
                 s.say(
-                  "Kleiner Tipp: Du kannst die Berechnung auch mit Steuerklasse 3 und 5 durchführen, um zu prüfen, ob das steuerliche Vorteile für dich bringt. Für diese Berechnung fahren wir mit Steuerklasse 4 fort, da diese die gängige ist. Okay, weiter gehts. Wieviele Kinder hast du?"
+                  "Kleiner Tipp: Du kannst die Berechnung auch mit Steuerklasse 3 und 5 durchführen, um zu prüfen, ob das steuerliche Vorteile für dich bringt. Für diese Berechnung fahren wir mit Steuerklasse 4 fort, da diese die gängige ist."
                 );
-                netSalary -= grossValue * 0.1887;
+                //Original: "Okay, weiter gehts. Wieviele Kinder hast du?""
+                steuerKlasse = 4;
+                married = true;
                 s.ready(() => {
                   s.run("children");
                 });
               });
 
               ss.match(/nein/i, () => {
-                s.say("Alles klar! Hast du minderjährige Kinder?");
-                netSalary -= grossValue * 0.1887;
+                $("#hint").html("");
+                //s.say("Alles klar! Hast du minderjährige Kinder?");
                 s.ready(() => {
                   s.run("children");
                 });
@@ -1175,7 +3571,7 @@
                 "Für Nebeneinkünfte ist die Steuerklasse 6 vorgesehen. Dies ist unabhängig davon, ob du verheiratet bist oder Kinder hast. Für das Haupteinkommen beeinflussen diese aber die Berechnung. Okay, weiter gehts. Wieviele Kinder hast du?"
               );
               s.pause(4000);
-              netSalary -= grossValue * 0.2884;
+              steuerKlasse = 6;
               s.ready(() => {
                 s.run("children_sub");
               });
@@ -1192,9 +3588,7 @@
         s.sub("children", (ss) => {
           ss.begin(() => {
             s.set("voice", "Mary");
-            s.say(`Super, vielen Dank! Wieviele Kinder hast du?`, {
-              method: "browser_tts",
-            });
+            s.say(`Super, vielen Dank! Wieviele Kinder hast du?`);
             s.ready(() => {
               s.run("children_sub");
               $("#hint").html("Wenn du keine Kinder hast, gib 0 ein.");
@@ -1209,11 +3603,9 @@
 
           ss.match(/^[0-9]{0,}$/im, () => {
             children = parseInt(msgArray.slice(-1).pop());
-            children > 0
-              ? (netSalary -= grossValue * 0.0305)
-              : (netSalary -= grossValue * 0.034);
+            faktorVerfahren = married ? children : 0.5 * children;
             console.log("Amount of children", children);
-            s.say("Ok! Und in welchem Bundesland lebst du? ");
+            console.log("Faktorverfahren", faktorVerfahren);
             s.ready(() => {
               s.run("bundeslaender");
             });
@@ -1228,6 +3620,7 @@
         s.sub("bundeslaender", (ss) => {
           ss.begin(() => {
             s.set("voice", "Mary");
+            s.say("Ok! Und in welchem Bundesland lebst du? ");
             $("#hint").html(
               "Nenne hier dein <b>Bundesland</b>, oder gib <b>'Hilfe'</b> ein, wenn du mehr wissen willst."
             );
@@ -1265,26 +3658,28 @@
             s.say("Bezahlst du Kirchensteuer?");
             s.ready(() => {
               $("#hint").html(
-                "Gib <b>Ja</b> oder <b>Nein</b> oder <b>'Hilfe'</b> ein."
+                "Gib <b>'Ja'</b> oder <b>'Nein'</b> oder <b>'Hilfe'</b> ein."
               );
             });
           });
 
           ss.match(/ja/i, async () => {
             $("#hint").html("");
-            switch (bundesLand.toLowerCase()) {
+            kirchensteuer = 1;
+            /*switch (bundesLand.toLowerCase()) {
               case "bayern":
                 netSalary -= grossValue * 0.09;
                 break;
               default:
                 netSalary -= grossValue * 0.08;
-            }
+            }*/
             s.ready(() => {
               s.run("calculationResult");
             });
           });
 
           ss.match(/nein/i, async () => {
+            kirchensteuer = 0;
             $("#hint").html("");
             s.ready(() => {
               s.run("calculationResult");
@@ -1299,7 +3694,7 @@
 
           ss.unknown(function () {
             s.say(
-              "Bitte sage mir mit <b>Ja</b> oder <b>Nein</b> ob du Kirchensteuer zahlst."
+              "Bitte sage mir mit <b>'Ja'</b> oder <b>'Nein'</b> ob du Kirchensteuer zahlst."
             );
           });
         });
@@ -1310,12 +3705,45 @@
 
             //Sozialversicherungsbeiträge
             //Pflegeversicherung 3,4% ohne Kinder, 3,05% mit Kindern https://www.bundesgesundheitsministerium.de/themen/pflege/online-ratgeber-pflege/die-pflegeversicherung/finanzierung.html#:~:text=Der%20Beitragssatz%20liegt%20seit%20dem,H%C3%A4lfte%2C%20also%20jeweils%201%2C525%20Prozent.
+            lst2021 = new Lohnsteuer2021({
+              RE4: grossValue * 100,
+              PKV: 0,
+              ALTER1: 0,
+              af: faktorVerfahren > 0 ? 1 : 0,
+              f: faktorVerfahren,
+              PVS: 0,
+              R: 0,
+              LZZHINZU: 0,
+              PVZ: 0,
+              STKL: steuerKlasse,
+              LZZ: lzz,
+              KRV: 0,
+            });
+
+            lst2021.MAIN();
+            let steuern =
+              lst2021.getLstlzz().value / 100 +
+              lst2021.getSts().value / 100 +
+              lst2021.getStv().value / 100;
+            let pflegeVersicherung = children > 0 ? 0.034 : 0.0305;
+            let sozialabgaben =
+              grossValue * (0.093 + 0.073 + 0.01875 + pflegeVersicherung);
+            console.log("steuern", steuern);
+            console.log("sozialabgaben", sozialabgaben);
+            netSalary = grossValue - (sozialabgaben + steuern);
+            netSalary = (lzz === 1 ? netSalary / 12 : netSalary).toFixed(2);
 
             //RV: 9,3%
             //KV: 7,3%
             //PV: 1,875
             //https://www.lohn-info.de/sozialversicherungsbeitraege2022.html
-            netSalary -= grossValue * 0.18475;
+
+            /*
+                    steuer = Math.floor(parseFloat(lst2021.getLstlzz()) + parseFloat(lst2021.getStv()) + parseFloat(lst2021.getSts())) / 100.0
+                    soli = Math.floor(parseFloat(lst2021.getSolzlzz()) + parseFloat(lst2021.getSolzs()) + parseFloat(lst2021.getSolzv())) / 100
+                    stges = steuer + soli
+                    console.log("stges"+ stges)
+                    console.log("Netsalary", grossValue - stges);*/
             s.say(
               `Sehr gut. Dann habe ich auch schon alles wichtige. Bitte beachte, dass das Ergebnis nur ein Richtwert ist. Der voraussichtliche Nettolohn beträgt ${netSalary} Euro.`
             );
@@ -1339,24 +3767,54 @@
             });
           });
 
-          s.sub("nudging_sub", (ss) => {
-            s.set("voice", "Mary");
-            window.alert(
-              "Wenn du deine Daten speichern lässt, werden diese mit Amazon geteilt. Willst du, dass der Skill deine Daten speichert?"
+          ss.match(/ja|jo|sicher|jaup|ok/i, () => {
+            $("#hint").css("background-color", "yellow");
+            //$("#hint").css("color", "red");
+            $("#hint").html(
+              "Dieser Skill verstößt gegen <span>4/12</span> Datenschutzprinzipien. Du kannst deine Entscheidung die Daten aus dieser Konversation speichern zu lassen noch ändern."
             );
+            s.pause(5000);
+            s.ready(() => {
+              s.run("nudging_sub");
+            });
+          });
 
+          s.sub("nudging_sub", (ss) => {
+            ss.begin(() => {
+              s.set("voice", "Mary");
+              s.say(
+                "Soll ich die angegebenen Daten für die nächste Berechnung speichern?"
+              );
+              s.ready(() => {
+                $("#hint").html(
+                  "Gib <b>'Ja'</b> ein, wenn du deine Eingaben speichern willst, oder <b>'Nein'</b>, wenn du das nicht willst."
+                );
+              });
+            });
             ss.match(/ja|jo|sicher|jaup|ok/i, () => {
+              $("#hint").html("");
               s.say("Wird gemacht.");
               s.pause(1000);
               s.say("Auf Wiedersehen");
               s.ready(() => {
-                s.srun("survey_subscript");
+                s.run("survey_subscript");
               });
             });
-          });
 
-          ss.match(/ja|jo|sicher|jaup|ok/i, () => {
-            s.run("nudging_sub");
+            ss.match(/ne|nein|nicht speichern/i, () => {
+              $("#hint").html("");
+
+              $("#survey_form").append(
+                '<input type="hidden" name="response_yn" value="no" />'
+              );
+
+              s.say("In Ordnung.");
+              s.say("Auf Wiedersehen");
+              s.pause(1000);
+              s.ready(() => {
+                s.run("survey_subscript");
+              });
+            });
           });
 
           ss.match(/ne|nein|nicht speichern/i, () => {
@@ -1375,6 +3833,58 @@
           ss.unknown(function () {
             s.say(
               "Sag einfach 'Ja', wenn ich die Daten für die nächste Berechnung speichern soll."
+            );
+          });
+        });
+
+        s.sub("privacy_priming", (ss) => {
+          ss.begin(() => {
+            s.set("voice", "Mary");
+            s.pause(1000);
+            s.say(
+              "Soll ich die Daten aus dieser Konversation für dich löschen?"
+            );
+            s.ready(() => {
+              $("#hint").html(
+                "Du hast die möglichkeit dein Daten löschen zu lassen. Geben Sie <b>'Ja'</b> ein, wenn Sie das wollen, oder <b>'Nein'</b>, wenn du deine Daten nicht löschen lassen willst."
+              );
+            });
+          });
+
+          ss.match(/ja|jo|sicher|jaup|löschen|ok/i, () => {
+            $("#survey_form").append(
+              '<input type="hidden"name="response_yn"value="yes"/>'
+            );
+
+            s.say(
+              "Okay. Ich habe deine Daten aus dieser Interaktion gelöscht."
+            );
+            s.say("Auf Wiedersehen!");
+            s.pause(1000);
+            s.ready(() => {
+              s.run("survey_subscript");
+            });
+          });
+
+          ss.match(
+            /nein|nö|nicht löschen|lieber nicht|auf keinen Fall/i,
+            () => {
+              $("#survey_form").append(
+                '<input type="hidden"name="response_yn"value="no"/>'
+              );
+
+              s.say("Alles klar.");
+              s.say("Auf Wiedersehen!");
+              s.pause(1000);
+              s.ready(() => {
+                s.run("survey_subscript");
+              });
+            }
+          );
+
+          ss.unknown(function () {
+            s.say(
+              "Entschuldigung, ich verstehe nicht. Sie können 'ja' oder 'nein' sagen, um die Daten zu löschen, die ich aus unserer Interaktion gesammelt habe."
             );
           });
         });
@@ -1432,14 +3942,16 @@
       });
 
       cbl.survey("survey", (s) => {
-
         s.section(
           "<br /><br />Bitte geben Sie an, wie stark Sie den folgenden Aussagen zustimmen oder nicht zustimmen:"
         );
 
         s.likert_scale(
           [
-            ["q_COMMIT1", "Ich glaube der Skill zeigt sich besorgt um die Privatsphäre seiner Nutzer."],
+            [
+              "q_COMMIT1",
+              "Ich glaube der Skill zeigt sich besorgt um die Privatsphäre seiner Nutzer.",
+            ],
             [
               "q_COMMIT2",
               " Ich fühle mich sicher wenn ich meine Daten an den Skill sende.",
@@ -1460,7 +3972,6 @@
               "q_COMMIT6",
               "Ich glaube nicht, dass der Skill meine Daten unbefugt an Dritte weitergeben wird.",
             ],
-
           ],
           {
             points: 5,
@@ -1471,7 +3982,10 @@
 
         s.likert_scale(
           [
-            ["q_COMMIT1", "Der Skill wird im Umgang mit meinen persönlichen Daten vertrauenswürdig sein."],
+            [
+              "q_COMMIT1",
+              "Der Skill wird im Umgang mit meinen persönlichen Daten vertrauenswürdig sein.",
+            ],
             [
               "q_COMMIT2",
               "Der Skill wird die Wahrheit sagen und Versprechen in Bezug auf die von mir bereitgestellten Daten erfüllen.",
@@ -1488,7 +4002,6 @@
               "q_COMMIT5",
               "Skills sind immer ehrlich zu den Benutzern, wenn es darum geht, die von mir bereitgestellten Daten zu verwenden.",
             ],
-
           ],
           {
             points: 5,
@@ -1497,10 +4010,12 @@
           }
         );
 
-
         s.likert_scale(
           [
-            ["q_COMMIT1", "Der Online-Datenschutz der Verbraucher ist wirklich eine Frage des Rechts der Verbraucher, Kontrolle und Autonomie über Entscheidungen darüber auszuüben, wie ihre Informationen gesammelt, verwendet und weitergegeben werden."],
+            [
+              "q_COMMIT1",
+              "Der Online-Datenschutz der Verbraucher ist wirklich eine Frage des Rechts der Verbraucher, Kontrolle und Autonomie über Entscheidungen darüber auszuüben, wie ihre Informationen gesammelt, verwendet und weitergegeben werden.",
+            ],
             [
               "q_COMMIT2",
               "Die Kontrolle der Verbraucher über personenbezogene Daten ist das Herzstück der Privatsphäre der Verbraucher.",
@@ -1518,14 +4033,13 @@
               "Wenn Online-Unternehmen mich nach persönlichen Informationen fragen, überlege ich es mir manchmal zweimal, bevor ich sie preisgebe.",
             ],
             [
-            "q_COMMIT6",
-            "Es stört mich, so vielen Online-Unternehmen persönliche Informationen zu geben.",
-          ],
-          [
-            "q_COMMIT7",
-            "Ich mache mir Sorgen, dass Online-Unternehmen zu viele persönliche Informationen über mich sammeln.",
-          ],
-
+              "q_COMMIT6",
+              "Es stört mich, so vielen Online-Unternehmen persönliche Informationen zu geben.",
+            ],
+            [
+              "q_COMMIT7",
+              "Ich mache mir Sorgen, dass Online-Unternehmen zu viele persönliche Informationen über mich sammeln.",
+            ],
           ],
           {
             points: 5,
@@ -1567,8 +4081,6 @@
           { desc_width: "70%" }
         );
 
-        
-
         s.section("<br /><br />Fragen zu Ihrer Person:");
 
         s.select(
@@ -1605,8 +4117,7 @@
       });
 
       cbl.completed((e) => {
-        e.html(
-          "<p>Thank you for completing the survey.</p><br/>");
+        e.html("<p>Thank you for completing the survey.</p><br/>");
       });
 
       cbl.start("datev-backup");
