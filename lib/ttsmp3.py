@@ -14,7 +14,7 @@ import boto3
 
 # generate mp3 using google translate (free) tts
 def generate_mp3_gtts(audio_mp3, text, lang):
-    gtts = gTTS(text=text, lang_check=False, lang=lang)
+    gtts = gTTS(text=text, lang_check=False, lang=lang, slow=False)
     gtts.save(audio_mp3)
 
 # generate mp3 using amazon polly tts

@@ -480,6 +480,7 @@ var CBL2Script = function() {
 		self.script.push([matchable, s => true, f]);
 	};
 
+	this.
 	// define a conditional match
 	this.match_if = function(regexp, expr, f) {
 		self.script.push([regexp, expr, f]);

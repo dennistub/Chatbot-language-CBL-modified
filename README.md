@@ -254,7 +254,7 @@ cbl.script("change-color", s => {
 		$('body').css('background-color', 'blue');
 	});
 
-});
+});clear
 ```
 
 ### Capturing match groups

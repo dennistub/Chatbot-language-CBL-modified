@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+      crossorigin="anonymous"
+    />
+    <script
+      type="text/javascript"
+      src="https://s3.amazonaws.com/mturk-public/externalHIT_v1.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.1.2/howler.core.min.js"
+    ></script>
+    <style>
+      #main {
+        margin-top: 5px;
+      }
+      .msg-in,
+      .msg-out {
+        display: block;
+        padding: 10px;
+        width: 600px;
+        margin: 3px;
+        margin-bottom: 20px;
+      }
+      .msg-in {
+        background: #00aabb;
+        margin-left: 0px;
+        margin-right: auto;
+      }
+      .msg-out {
+        background: #00ccdd;
+        margin-left: auto;
+        margin-right: 0px;
+      }
+      .msg-bubble {
+        position: relative;
+        border-radius: 0.4em;
+      }
+      .msg-bubble:after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        width: 0;
+        height: 0;
+        border: 20px solid transparent;
+        border-bottom: 0;
+        border-right: 0;
+        margin-left: -10px;
+        margin-bottom: -20px;
+      }
+      .msg-bubble-in:after {
+        border-top-color: #00aabb;
+        left: 20%;
+      }
+      .msg-bubble-out:after {
+        border-top-color: #00ccdd;
+        left: 80%;
+      }
+      .msgs {
+        height: 400px;
+        margin-top: 10px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+      }
+      .inputbox {
+        margin-top: 20px;
+      }
+      .hidden {
+        display: none;
+      }
+      .small {
+        font-size: 10pt;
+      }
+      .red {
+        color: red;
+      }
+      td {
+        padding: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main" class="container-fluid">
+      <div id="instructions" class="container hidden">
+        <div class="card card-info bg-light">
+          <div class="card-header">Instructions</div>
+          <div class="card-body">
+            <div id="instructions-content"></div>
+            <button id="btn-continue" class="btn btn-primary">Continue</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="content" class="container">
+        <div class="card bg-light">
+          <div class="card-header">Chatbot Experiment</div>
+
+          <div class="msgs container"></div>
+
+          <div class="input-group mb-3 inputbox">
+            <input
+              type="text"
+              id="txt-input"
+              class="form-control"
+              placeholder="Type your reply here ..."
+            />
+            <div class="input-group-append">
+              <button
+                id="btn-send"
+                class="btn btn-outline-secondary"
+                type="button"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+
+          <div id="hint" class="card-footer"></div>
+        </div>
+      </div>
+
+      <div id="survey" class="container hidden">
+        <form id="survey_form" action="" name="mturk_form" method="post">
+          <input type="hidden" name="assignmentId" value="" />
+          <input type="hidden" name="scriptName" value="" />
+          <input type="hidden" name="transcript" value="" />
+
+          <div class="card bg-light">
+            <div class="card-header">Survey</div>
+
+            <div id="survey-qa" class="card-body"></div>
+
+            <div id="survey-continue" class="card-body">
+              <div id="status" class="red"></div>
+
+              <br />
+              <!-- <input id="btn-finish" type="submit" class="btn btn-primary" value="Continue" /> -->
+              <input
+                id="btn-finish"
+                type="button"
+                class="btn btn-primary"
+                value="Continue"
+              />
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div id="completed" class="container hidden">
+        <div class="card bg-light">
+          <div class="card-header">Experiment Completed</div>
+
+          <div id="completed-content" class="card-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      let msgArray = [];
+      var cbl = new (function () {
+        var self = this;
+        self.vars = {};
+        self.scripts = {};
+        self.surveys = {};
+        self.survey_defs = {};
+        self.output = [];
+        self.mturk_mode = false;
+        self.instructions_funs = [];
+        self.instructions_idx = 0;
+        self.completed_fun = null;
+        self.active_script = null;
+        self.active_survey = null;
+        self.get = function (k) {
+          console.log("cbl.get", k);
+          return self.vars[k];
+        };
+        self.set = function (k, v) {
+          console.log("cbl.set", k, v);
+          self.vars[k] = v;
+        };
+        self.set("audio_prefix", "audio/");
+        self.set("voice_volume", 0.9);
+        self.set("say_method", "audio_file");
+        self.debug = true;
+        self.log = function (...l) {
+          if (self.debug) console.log(...l);
+        };
+        self.random_item = function (arr) {
+          var item = arr[Math.floor(Math.random() * arr.length)];
+          cbl.log("randomly selected", item);
+          return item;
+        };
+        self.random_num = function (min, max) {
+          return Math.floor(Math.random() * (max - min + 1) + min);
+        };
+        self.start = function (scriptname) {
+          cbl.log("starting " + scriptname);
+          self.transcript = "";
+          self.script_name = scriptname;
+          self.talking = false;
+          if (window.location.href.includes("mturk")) self.mturk_mode = true;
+          if (self.mturk_mode) {
+            $("#btn-finish")
+              .clone()
+              .attr("type", "submit")
+              .insertAfter("#btn-finish")
+              .prev()
+              .remove();
+            self.workerId = turkGetParam("workerId");
+            self.assignmentId = turkGetParam("assignmentId");
+            self.hitId = turkGetParam("hitId");
+            self.answer_url = decodeURIComponent(turkGetParam("turkSubmitTo"));
+            console.log("workerId", self.workerId);
+            console.log("assignmentId", self.assignmentId);
+            console.log("hitId", self.hitId);
+            console.log("answer_url", self.answer_url);
+            $("#survey_form").attr(
+              "action",
+              self.answer_url + "/mturk/externalSubmit"
+            );
+            $("input[name=assignmentId]").val(self.assignmentId);
+            $("input[name=scriptName]").val(self.script_name);
+          }
+          $("#btn-finish").click(function () {
+            if (self.active_survey && !self.validate_survey(self.active_survey))
+              return false;
+            if (self.completed_fun) {
+              var s = new CBL2Completed();
+              self.completed_fun(s);
+            }
+            $("#survey").hide();
+            $("#completed").show();
+          });
+          if (self.instructions_funs.length) {
+            $("#instructions").show();
+            $("#content").hide();
+            $("#btn-continue").click(function () {
+              if (self.instructions_idx == self.instructions_funs.length - 1) {
+                self.instructions_done();
+              } else {
+                self.instructions_idx += 1;
+                self.instructions_next();
+              }
+            });
+            self.instructions_next();
+          } else {
+            self.instructions_done();
+          }
+        };
+        self.instructions_next = function () {
+          var s = new CBL2Instructions();
+          self.instructions_funs[self.instructions_idx](s);
+        };
+        self.instructions_done = function () {
+          $("#instructions").hide();
+          $("#content").show();
+          cbl.run(self.script_name);
+        };
+        self.init_chat = function () {
+          $("#btn-send").click(function () {
+            let msg = $("#txt-input").val();
+            self.msg_send(msg);
+            msgArray.push(msg);
+            $("#txt-input").val("");
+          });
+          $("#txt-input").keypress(function (e) {
+            if (e.which == 13) {
+              $("#btn-send").click();
+            }
+          });
+        };
+        self.msg_send = function (msg) {
+          console.log("Message send: ", msg);
+          self.transcript += "[user] " + msg + "; ";
+          $(".msgs").append(
+            '<div class="msg-out msg-bubble msg-bubble-out"> ' + msg + "</div>"
+          );
+          self.scroll_to_bottom();
+          self.active_script.input(msg);
+        };
+        self.msg_receive = function (name, msg, opts, cb) {
+          msg = msg.replace(/\*([^*]+?)\*/g, "<b>$1</b>");
+          msg = msg.replace(/\_([^*]+?)\_/g, "<i>$1</i>");
+          self.transcript += "[" + name + "] " + msg + "; ";
+          if (name)
+            $(".msgs").append(
+              '<div class="msg-in msg-bubble msg-bubble-in">' + msg + "</div>"
+            );
+          else
+            $(".msgs").append(
+              '<div class="msg-in msg-bubble msg-bubble-in"> ' + msg + "</div>"
+            );
+          self.scroll_to_bottom();
+          self.play_voice(name, msg, opts);
+        };
+        self.play_voice = function (name, msg, opts) {
+          var method = self.get("say_method");
+          if (opts && opts["method"]) method = opts["method"];
+          self.talking = true;
+          $("#btn-send").attr("disabled", true);
+          if (method == "browser_tts") {
+            cbl.log("saying with browser tts", msg);
+            var ttsmsg = new SpeechSynthesisUtterance(msg);
+            ttsmsg.onend = function () {
+              self.talking = false;
+              $("#btn-send").attr("disabled", false);
+              if (opts && opts["done"]) opts["done"]();
+            };
+            window.speechSynthesis.speak(ttsmsg);
+          }
+          if (method == "audio_file") {
+            var fn = self.ttfn(name, msg);
+            cbl.log("playing audio file", fn);
+            if (self.audio_playing)
+              self.audio_playing.volume(self.audio_playing_vit);
+            var sound = new Howl({
+              src: [self.get("audio_prefix") + fn],
+              autoplay: true,
+              loop: false,
+              volume: self.get("voice_volume"),
+              onend: function () {
+                self.talking = false;
+                if (self.audio_playing)
+                  self.audio_playing.volume(self.audio_playing_vol);
+                $("#btn-send").attr("disabled", false);
+                if (opts && opts["done"]) opts["done"]();
+              },
+              onloaderror: function () {
+                self.talking = false;
+                if (self.audio_playing)
+                  self.audio_playing.volume(self.audio_playing_vol);
+                $("#btn-send").attr("disabled", false);
+              },
+            });
+          }
+        };
+        self.audio_playing = null;
+        self.audio_playing_vol = 0.9;
+        self.audio_playing_vit = 0.9;
+        self.play_audio = function (fn, opts, cb) {
+          self.audio_playing_vol = 0.9;
+          self.audio_playing_vit = 0.9;
+          if (opts && opts["vol"]) self.audio_playing_vol = opts["vol"];
+          if (opts && opts["vol_if_talking"])
+            self.audio_playing_vit = opts["vol_if_talking"];
+          if (self.audio_playing) {
+            self.stop_audio();
+          }
+          cbl.log("playing audio file", fn);
+          self.audio_playing = new Howl({
+            src: [self.get("audio_prefix") + fn],
+            autoplay: true,
+            loop: false,
+            volume: self.audio_playing_vol,
+            onend: function () {
+              self.audio_playing = null;
+              if (cb) cb();
+            },
+            onloaderror: function () {
+              self.audio_playing = null;
+              if (cb) cb();
+            },
+          });
+        };
+        self.play_audio_volume = function (vol) {
+          if (self.audio_playing) self.audio_playing.volume(vol);
+          self.audio_playing_vol = vol;
+        };
+        self.stop_audio = function () {
+          if (self.audio_playing != null) {
+            self.audio_playing.stop();
+            self.audio_playing.unload();
+            self.audio_playing = null;
+          }
+        };
+        self.pause = function (ms) {
+          setTimeout(function () {
+            self.talking = false;
+          }, ms);
+        };
+        self.think = function () {
+          if (self.talking) return;
+          var o = cbl.output.shift();
+          if (!o) return;
+          if (typeof o[0] == "function") {
+            o[0](o[1]);
+          }
+          if (o[1] && o[2]) {
+            cbl.log("saying", o[2], "as", o[1]);
+            cbl.msg_receive(o[1], o[2], o[3]);
+            return;
+          }
+          if (!o[1]) {
+            self.talking = true;
+            cbl.log("pausing (ms) ", o[0]);
+            cbl.pause(o[0]);
+          }
+        };
+        self.ttfn = function (name, text) {
+          var t = self.strip_tags(text);
+          t = t.replace(/ /g, "_").replace(/[^0-9a-zA-Z_\-]/gi, "");
+          return name.toLowerCase() + "_" + t.toLowerCase() + ".mp3";
+        };
+        self.strip_tags = function (html) {
+          return html.replace(/<[^>]*>?/gm, "");
+        };
+        self.script = function (script_name, f) {
+          var s = new CBL2Script();
+          f(s);
+          self.scripts[script_name] = s;
+        };
+        self.instructions = function (f) {
+          self.instructions_funs.push(f);
+        };
+        self.completed = function (f) {
+          self.completed_fun = f;
+        };
+        self.survey = function (survey_name, f) {
+          var s = new CBL2Survey();
+          f(s);
+          self.survey_defs[survey_name] = f;
+          self.surveys[survey_name] = s;
+        };
+        self.survey_results_json = function (survey_name) {
+          var f = self.survey_defs[survey_name];
+          var s = new CBL2SurveyResults();
+          f(s);
+          return JSON.stringify(self.merge_all_results(s.results()));
+        };
+        self.survey_results_csv = function (survey_name) {
+          var f = self.survey_defs[survey_name];
+          var s = new CBL2SurveyResults();
+          f(s);
+          return self.obj_to_csv(self.merge_all_results(s.results()));
+        };
+        self.obj_to_csv = function (obj) {
+          var csv = "";
+          for (var k in obj) {
+            csv += '"' + k + '"' + ",";
+          }
+          csv += "\n";
+          for (var k in obj) {
+            var v = obj[k];
+            csv += '"' + v + '",';
+          }
+          csv += "\n";
+          return csv;
+        };
+        self.merge_all_results = function (s) {
+          var mr = Object.assign(s, self.custom_results);
+          mr["transcript"] = self.transcript;
+          return mr;
+        };
+        self.custom_results = {};
+        self.set_result = function (k, v) {
+          $("#survey_form").append(
+            '<input type="hidden" name="' + k + '" value="' + v + '" />'
+          );
+          self.custom_results[k] = v;
+        };
+        self.run = function (script_name) {
+          self.active_script = self.scripts[script_name];
+          self.active_script.restart();
+        };
+        self.show_survey = function (survey_name) {
+          self.active_survey = survey_name;
+          $("#content").hide();
+          $("#survey-qa").html(self.surveys[survey_name].html());
+          $("#survey").show();
+          self.transcript += "EOT";
+          $("input[name=transcript]").val(self.transcript);
+        };
+        self.validate_survey = function (survey_name) {
+          var f = self.survey_defs[survey_name];
+          var s = new CBL2SurveyValidator();
+          f(s);
+          if (s.success) return true;
+          else {
+            $("#status").html(s.errmsg);
+            return false;
+          }
+        };
+        self.scroll_to_bottom = function () {
+          var div = $(".msgs")[0];
+          div.scrollTop = div.scrollHeight;
+        };
+        self.init_chat();
+      })();
+      var CBL2Script = function () {
+        var self = this;
+        this.script = [];
+        this.subs = [];
+        this.vars = {};
+        this.parent = null;
+        self.get = function (k) {
+          return self.vars[k];
+        };
+        self.set = function (k, v) {
+          self.vars[k] = v;
+        };
+        this.init = function () {
+          setInterval(function () {
+            cbl.think();
+          }, 100);
+          self.set("typing_delay_max_ms", 1000);
+          self.set("thinking_delay_max_ms", 2000);
+        };
+        this.restart = function () {
+          self.do("_begin_");
+        };
+        this.begin = function (f) {
+          self.match("_begin_", f);
+        };
+        this.unknown = function (f) {
+          self.match("_unknown_", f);
+        };
+        this.survey = function (survey_name) {
+          cbl.show_survey(survey_name);
+        };
+        this.sub = function (label, f) {
+          self.subs.push([label, f]);
+        };
+        this.run = function (label) {
+          cbl.log("running subscript", label);
+          var ss = new CBL2Script();
+          ss.parent = self;
+          cbl.active_script = ss;
+          for (var si of self.subs) {
+            if (si[0] == label) {
+              si[1](ss);
+              break;
+            }
+          }
+          ss.do("_begin_");
+        };
+        this.ret = function () {
+          var p = cbl.active_script.parent;
+          if (p) {
+            cbl.log("returning from subscript");
+            cbl.active_script = p;
+          }
+        };
+        this.match = function (matchable, f) {
+          self.script.push([matchable, (s) => true, f]);
+        };
+        this.match_if = function (regexp, expr, f) {
+          self.script.push([regexp, expr, f]);
+        };
+        this.do = function (text) {
+          var done = false;
+          for (var si of self.script) {
+            cbl.log("evaluating ", si);
+            var m = self.matches(si[0], text);
+            if (m) {
+              if (si[1](self)) {
+                cbl.log("evaluated true: ", si[1]);
+                cbl.log("doing: ", si[2]);
+                si[2](m);
+                done = true;
+                break;
+              } else {
+                cbl.log("evaluated false: ", si[1]);
+              }
+            }
+          }
+          if (done || !self.parent) return done;
+          for (var si of self.parent.script) {
+            var m = self.matches(si[0], text);
+            if (m) {
+              if (si[1](self)) {
+                cbl.log("evaluated true: ", si[1]);
+                si[2](m);
+                done = true;
+                break;
+              } else {
+                cbl.log("evaluated false: ", si[1]);
+              }
+            }
+          }
+          return done;
+        };
+        this.matches = function (s1, s2) {
+          cbl.log("match?", s1, s2);
+          if (s1 == s2) {
+            cbl.log("matched", s2);
+            return s1;
+          }
+          if (s2[0] == "_") return false;
+          if (s1 instanceof RegExp) {
+            var m = s2.match(s1);
+            if (m) {
+              cbl.log("matched", s2);
+              return m;
+            }
+          }
+          return false;
+        };
+        this.say = function (text, opts) {
+          var voice = self.get("voice");
+          if (Array.isArray(text)) text = cbl.random_item(text);
+          var typing_delay_ms =
+            self.get("typing_delay_max_ms") -
+            self.get("typing_delay_max_ms") / text.length;
+          if (opts && opts["voice"]) voice = opts["voice"];
+          cbl.output.push([typing_delay_ms, null, null, null]);
+          cbl.output.push([0, voice, text, opts]);
+        };
+        this.pause = function (ms) {
+          cbl.output.push([ms, null, null, null]);
+        };
+        this.ready = function (fun) {
+          cbl.output.push([fun, self, null, null]);
+        };
+        this.delay = function (ms) {
+          return new Promise((resolve) => setTimeout(resolve, ms));
+        };
+        this.input = function (text) {
+          var thinking_delay_ms =
+            self.get("thinking_delay_max_ms") -
+            self.get("thinking_delay_max_ms") / text.length;
+          cbl.log("thinking (ms) ", thinking_delay_ms);
+          self.delay(thinking_delay_ms).then(function () {
+            if (!self.do(text)) self.do("_unknown_");
+          });
+        };
+        self.init();
+      };
+      var CBL2Instructions = function () {
+        this.html = function (html) {
+          $("#instructions-content").html(html);
+        };
+      };
+      var CBL2Completed = function () {
+        this.html = function (html) {
+          $("#completed-content").html(html);
+        };
+      };
+      var CBL2Survey = function () {
+        var self = this;
+        this.output = "";
+        this.html = function () {
+          return self.output;
+        };
+        this.section = function (t) {
+          self.output += "<h4>" + t + "</h4>";
+        };
+        this.select = function (n, t, arr, opts) {
+          var desc_width = "50%";
+          if (opts && opts["desc_width"]) desc_width = opts["desc_width"];
+          self.output +=
+            '<table width="100%">' +
+            "<tr>" +
+            '<td width="' +
+            desc_width +
+            '">' +
+            t +
+            "</td>" +
+            "<td>" +
+            '<select class="form-control" name="' +
+            n +
+            '">';
+          arr.forEach(function (a) {
+            self.output += '<option value="' + a[0] + '">' + a[1] + "</option>";
+          });
+          self.output += "</select>" + "</td>" + "</tr>" + "</table>";
+        };
+        this.input_text = function (n, t, opts) {
+          var desc_width = "50%";
+          if (opts && opts["desc_width"]) desc_width = opts["desc_width"];
+          self.output +=
+            '<table width="100%"><tr>' +
+            '<td width="' +
+            desc_width +
+            '">' +
+            t +
+            "</td>" +
+            "<td>" +
+            '<input type="text" name="' +
+            n +
+            '" class="form-control" />' +
+            "</td>" +
+            "</tr>" +
+            "</table>";
+        };
+        this.textarea = function (n, t, opts) {
+          var rows = 5;
+          if (opts && opts["rows"]) rows = opts["rows"];
+          self.output +=
+            "<div>" +
+            t +
+            "</div>" +
+            '<textarea name="' +
+            n +
+            '" rows="' +
+            rows +
+            '" class="form-control"></textarea>';
+        };
+        this.input_range = function (n, t, r0, r1, opts) {
+          var desc_width = "50%";
+          if (opts && opts["desc_width"]) desc_width = opts["desc_width"];
+          self.output +=
+            '<table width="100%"><tr>' +
+            '<td width="' +
+            desc_width +
+            '">' +
+            t +
+            "</td>" +
+            "<td>" +
+            '<input type="number" name="' +
+            n +
+            '" min="' +
+            r0.toString() +
+            '" max="' +
+            r1.toString() +
+            '" class="form-control" />' +
+            "</td>" +
+            "</tr>" +
+            "</table>";
+        };
+        this.likert_scale = function (arr, opts) {
+          var points = 5;
+          if (opts && opts["points"]) points = opts["points"];
+          var disagree = "Disagree";
+          var agree = "Agree";
+          if (opts && opts["disagree"]) disagree = opts["disagree"];
+          if (opts && opts["agree"]) agree = opts["agree"];
+          self.output +=
+            "<table><tr>" +
+            '<td width="450px"></td>' +
+            '<td width="75px">' +
+            '<span class="small">' +
+            disagree +
+            "</span>" +
+            "</td>";
+          for (var i = 1; i < points - 1; i++) {
+            self.output += '<td width="75px"></td>';
+          }
+          self.output +=
+            '<td width="75px">' +
+            '<span class="small">' +
+            agree +
+            "</span>" +
+            "</td></tr>";
+          arr.forEach(function (a) {
+            var n = a[0];
+            var q = a[1];
+            self.output += "<tr>" + "<td>" + q + "</td>";
+            for (var i = 1; i < points + 1; i++) {
+              self.output +=
+                '<td width="75px">' +
+                '<input type="radio" name="' +
+                n +
+                '" value="' +
+                i.toString() +
+                '" /></td>';
+            }
+            self.output += "</tr>";
+          });
+          self.output += "</table><br/>";
+        };
+        this.sem_diff_scale = function (arr, opts) {
+          var points = 5;
+          if (opts && opts["points"]) points = opts["points"];
+          self.output += '<table width="100%">';
+          arr.forEach(function (a) {
+            var n = a[0];
+            var q1 = a[1];
+            var q2 = a[2];
+            self.output += "<tr><td>" + q1 + "</td>";
+            for (var i = 1; i < points + 1; i++) {
+              self.output +=
+                '<td><input type="radio" name="' +
+                n +
+                '" value="' +
+                i.toString() +
+                '" /></td>';
+            }
+            self.output += "<td>" + q2 + "</td></tr>";
+          });
+          self.output += "</table><br/>";
+        };
+      };
+      var CBL2SurveyResults = function () {
+        var self = this;
+        this.output = {};
+        this.results = function () {
+          return self.output;
+        };
+        this.section = function (t) {};
+        this.select = function (n, t, arr) {
+          self.output[n] = $('select[name="' + n + '"] :selected').val();
+        };
+        this.input_range = function (n, t, r0, r1) {
+          self.output[n] = $('input[name="' + n + '"]').val();
+        };
+        this.input_text = function (n, t) {
+          self.output[n] = $('input[name="' + n + '"]').val();
+        };
+        this.textarea = function (n, t) {
+          self.output[n] = $('textarea[name="' + n + '"]').val();
+        };
+        this.likert_scale = function (arr) {
+          arr.forEach(function (a) {
+            var n = a[0];
+            var q = a[1];
+            self.output[n] = $('input[name="' + n + '"]:checked').val();
+          });
+        };
+        this.sem_diff_scale = function (arr) {
+          arr.forEach(function (a) {
+            var n = a[0];
+            var q = a[1];
+            self.output[n] = $('input[name="' + n + '"]:checked').val();
+          });
+        };
+      };
+      var CBL2SurveyValidator = function () {
+        var self = this;
+        this.success = true;
+        this.errmsg = "";
+        this.section = function (t) {};
+        this.select = function (n, t, arr) {
+          var v = $('select[name="' + n + '"] :selected').val();
+          if (!v) {
+            self.success = false;
+            self.errmsg = "Please select an option for " + t;
+          }
+        };
+        this.input_range = function (n, t, r0, r1) {
+          var v = $('input[name="' + n + '"]').val();
+          if (!(parseInt(v) >= r0 && parseInt(v) <= r1)) {
+            success = false;
+            self.errmsg = "Please enter a valid number for " + t;
+          }
+        };
+        this.input_text = function (n, t, opts) {
+          var v = $('input[name="' + n + '"]').val();
+          if (!v && opts && opts["required"]) {
+            success = false;
+            self.errmsg = "Please enter text for " + t;
+          }
+        };
+        this.textarea = function (n, t, opts) {
+          var v = $('textarea[name="' + n + '"]').val();
+          if (!v && opts && opts["required"]) {
+            success = false;
+            self.errmsg = "Please enter text for " + t;
+          }
+        };
+        this.likert_scale = function (arr) {
+          arr.forEach(function (a) {
+            var n = a[0];
+            var q = a[1];
+            var v = $('input[name="' + n + '"]:checked').val();
+            if (!v) {
+              self.success = false;
+              self.errmsg = "Please select an option for " + q;
+            }
+          });
+        };
+        this.sem_diff_scale = function (arr) {
+          arr.forEach(function (a) {
+            var n = a[0];
+            var q1 = a[1];
+            var q2 = a[2];
+            var v = $('input[name="' + n + '"]:checked').val();
+            if (!v) {
+              self.success = false;
+              self.errmsg = "Please select an option for " + q1 + " / " + q2;
+            }
+          });
+        };
+      };
+      cbl.set("audio_prefix",
+      "https://privacydialoguebucket.s3.eu-central-1.amazonaws.com/");
+    
+    
+    cbl.instructions(e => {
+    
+      e.html(`<p>Willkommen zu diesem &nbsp;<b> Experiment mit einem Chatbot-System </b>. <br /><br />In diesem Experiment,&nbsp; wird Ihnen eine Aufgabe gestellt,&nbsp; die Sie mit unserem Chatbot-System lösen sollen.&nbsp; <b>Die Aufgabe wird am unteren Rand Ihres Bildschirms angezeigt</b>,&nbsp; nachdem Sie&nbsp; "weiter"&nbsp; geklickt haben.&nbsp; Am Ende Ihrer Interaktion,&nbsp; werden Sie gebeten,&nbsp; eine Umfrage über Ihre Erfahrungen mit der Interaktion auszufüllen.&nbsp;Die Studie dauert etwa 5 Minuten.</p><br/>
+        <textarea rows="10" style="width: 100%;">
+        Einverständniserklärung nach GDPR
+        Sie erklären sich einverstanden,&nbsp; an der Studie&nbsp; "Evaluation der Nutzererfahrungen mit einem Chatbot-System" &nbsp;des Fraunhofer-Instituts für Integrierte Schaltungen IIS &nbsp;(im Folgenden Fraunhofer IIS) teilzunehmen. &nbsp;Die Teilnahme an der Studie beinhaltet eine kurze Interaktion mit einem Chatbot,&nbsp; sowie das Ausfüllen eines Fragebogens, der zur Verbesserung der Kommunikation mit Maschinen dient.&nbsp;
+        Ich bin damit einverstanden,&nbsp; dass das Fraunhofer IIS,&nbsp; Am Wolfsmantel 33,&nbsp; 91058 Erlangen,&nbsp; Deutschland,&nbsp; zum Zwecke der Durchführung,&nbsp; der Auswertung und Präsentation der oben genannten Studie,&nbsp; folgende persönliche Daten von mir erheben darf: &#10;
+        
+        -&nbsp; Alter
+        -&nbsp; Geschlecht
+        -&nbsp; Subjektive Bewertungen Ihrer Erfahrung mit dem Chatbot-System
+        
+        (nachstehend als &nbsp; "Daten" &nbsp; bezeichnet).&#10;
+        Eine weitere Verwendung der Daten ist ausgeschlossen. &#10;
+        Die anonymisierten Daten werden in der Mensch-Maschine-Interaktion,&nbsp; User Experience und Natural Language Processing sowie für statistische Auswertungen der Studie verwendet.&nbsp; Die Auswertung Ihrer Daten erfolgt ausschließlich durch Mitarbeiter des Fraunhofer IIS,&nbsp; diese sind zur Vertraulichkeit verpflichtet.&#10; 
+        Ich willige ferner ein,&nbsp; dass das Fraunhofer IIS meine oben genannten Daten an die folgenden Datenschutzbeauftragten und die für die Verarbeitung der Daten für den oben genannten Zweck Verantwortlichen weitergeben darf:&#10;
+        
+        -&nbsp; Fraunhofer-Gesellschaft
+        -&nbsp; Entwicklungspartner
+        -&nbsp; Universitäten
+        -&nbsp; Dienstanbieter
+        Soweit diese zum Zweck der Erreichung des Forschungszwecks in das Projekt eingebunden sind.&#10;
+        Die Teilnahme an der Studie ist freiwillig.&nbsp; Sie können Ihre Teilnahme an der Studie jederzeit beenden und Ihre Zustimmung zur Studie ohne Angabe von Gründen ändern oder widerrufen.&#10;
+        In Bezug auf die von uns verarbeiteten personenbezogenen Daten haben Sie Anspruch auf die Rechte der betroffenen Person nach GDPR,&nbsp; das Recht auf Information,&nbsp; Berichtigung,&nbsp; Widerruf oder Sperrung/Löschung Ihrer Daten,&nbsp; sowie das Recht,&nbsp; sich bei der Aufsichtsbehörde zu beschweren.&#10;
+        Die Anforderungen des 32 GDPR-Formulars für den Schutz personenbezogener Daten werden erfüllt.&#10;
+        Die Daten werden so lange elektronisch gespeichert,&nbsp; wie es für die Erfüllung des wissenschaftlichen Forschungszwecks erforderlich ist &nbsp;(Entwicklung benutzerfreundlicher Maschinen und wissenschaftliche Veröffentlichung der Forschungsergebnisse).&nbsp; Soweit der Forschungszweck ernsthaft beeinträchtigt wird oder seine Verwirklichung unmöglich wird,&nbsp; können im Rahmen der gesetzlichen Erlaubnisbestimmungen Ausnahmen von den in den Absätzen 15,&nbsp; 16,&nbsp; 18 und 21 GDPR genannten Rechten vorgesehen werden.&#10;
+        Wenn Sie Fragen zur Erhebung und zum Datenschutz haben,&nbsp; wenden Sie sich bitte an:&#10;
+        Dr. Birgit Bruggemeier,&nbsp; birgit.brueggemeier@iis.fraunhofer.de
+        Fraunhofer-Datenschutzbeauftragter:&nbsp; Prof. Dr. Ralph Harter,&nbsp; ralph.harter@zv.fraunhofer.de
+    </textarea><br/><br/>
+      `);
+    
+    });
+    
+    
+    cbl.script("Privacy_Dialogue", s => {
+    
+       s.begin(() => {
+        
+        // NOTE: select a random category for this session:
+            s.set("condition", cbl.random_item(["privacy_priming", "privacy_no_priming", "control"])); 
+            $('#survey_form').append('<input type="hidden" name="condition" value="' +
+                s.get("condition") + '" />');
+        // NOTE: s.get(category) will now be "privacy_priming", "privacy_no_priming" or "control"
+            $('#hint').html("Aufgabe: <b>Kontrollieren Sie den Kontostand </b> Ihrer Kreditkarte mit der Endung <b>5678</b> für die letzten <b>drei Monate</b>.");
+            s.run("welcome");
+    
+            
+       });
+    
+       // Add subscripts
+       s.sub("welcome", ss => {
+    
+            ss.begin(() => {
+                s.set("voice", "Mary");
+                s.say("Hallo! Ich bin ein Bank-Chatbot, wie kann ich Ihnen helfen?");
+            });
+        
+            ss.match(/Hi|Hallo|Ja|Klar/i, () => {
+                s.say("Hallo nochmal! Wie kann ich Ihnen helfen?"); //CHANGE: when the user first said "yes", the mode should be "welcome"
+            });
+    
+            ss.match(/kontrollieren|saldo|check|überprüfe|prüfe|Kreditkarte|Kontostand|Konto|abfragen/i, () => { 
+                s.say("Okay, welche Kreditkarte möchten Sie überprüfen?")
+                s.run("card_number");
+            });
+    
+            ss.unknown(function() {
+                s.say("Entschuldigung, ich verstehe nicht. Sie können mich bitten, Ihren Kontostand zu überprüfen.");
+            });
+    
+            $('#hint').html("Aufgabe: <b>Kontrollieren Sie den Kontostand </b> Ihrer Kreditkarte mit der Endung <b>5678</b> für die letzten <b>drei Monate</b>.");
+    
+        });
+    
+        s.sub("card_number", ss => {
+    
+            ss.begin(() => {
+                s.set("voice", "Mary");
+            });
+        
+            ss.match(/5678|5 6 7 8|fünf sechs sieben acht/i, () => { 
+                s.say("Für wie viele Monate möchten Sie Ihren Kontostand überprüfen?");
+                s.run("duration")
+            });
+    
+            ss.unknown(function() {
+                s.say("Tut mir leid, ich kenne diese Karte nicht. Bitte versuchen Sie eine andere Kartenummer.");
+            });
+    
+            $('#hint').html("Aufgabe: <b>Kontrollieren Sie den Kontostand </b> Ihrer Kreditkarte mit der Endung <b>5678</b> für die letzten <b>drei Monate</b>.");
+    
+        });
+    
+        s.sub("duration", ss => {
+    
+            ss.begin(() => {
+                s.set("voice", "Mary");
+            });
+        
+            ss.match(/3|drei/i, () => { 
+                s.run('checking');
+            });
+    
+            ss.unknown(function() {
+                s.say("Tut mir leid, das kann ich nicht tun. Versuchen Sie Ihren Kontostand für drei Monate abzufragen.");
+            });
+    
+            $('#hint').html("Aufgabe: <b>Kontrollieren Sie den Kontostand </b> Ihrer Kreditkarte mit der Endung <b>5678</b> für die letzten <b>drei Monate</b>.");
+    
+        });
+    
+        s.sub('checking', ss => {
+            ss.begin(() =>{
+                s.set("voice", "Mary");
+                s.say("Ich prüfe den Saldo der Karte 5 6 7 8 für die letzten drei Monate und bearbeite Ihren Auftrag...");
+                s.say("Ihr Kontostand für die letzten drei Monate ist: 99 Euro, 272 Euro und 410 Euro.");
+                s.ready(() => { s.run(s.get('condition')); })
+            })
+    
+            ss.unknown(function() {  
+            });
+        });
+    
+        s.sub("privacy_priming", ss => {
+    
+            ss.begin(() => {
+                s.set("voice", "Mary");
+                s.say("Möchten Sie, dass ich Ihre Daten aus dieser Interaktion jetzt lösche, um Ihre Privatsphäre zu schützen?");   
+            });
+            
+            ss.match(/ja|jo|sicher|jaup|löschen|ok/i, () => { 
+    
+                $('#survey_form').append('<input type="hidden" name="response_yn" value="yes" />');
+    
+                s.say("Okay. Ich habe Ihre Daten aus dieser Interaktion gelöscht.");
+                s.say("Auf Wiedersehen!"); 
+                s.pause(1000);
+                s.ready(() => { s.run("survey_subscript"); })
+            });
+    
+            ss.match(/nein|nö|nicht löschen|lieber nicht|auf keinen Fall/i, () => { 
+    
+                $('#survey_form').append('<input type="hidden" name="response_yn" value="no" />');
+    
+                s.say("Okay dann.");
+                s.say("Auf Wiedersehen!"); 
+                s.pause(1000);
+                s.ready(() => { s.run("survey_subscript"); })
+            });
+    
+            ss.unknown(function() {
+                s.say("Entschuldigung, ich verstehe nicht. Sie können 'ja' oder 'nein' sagen, um die Daten zu löschen, die ich aus unserer Interaktion gesammelt habe.");
+            });
+    
+            $('#hint').html("Aufgabe: <b>Kontrollieren Sie den Kontostand </b> Ihrer Kreditkarte mit der Endung <b>5678</b> für die letzten <b>drei Monate</b>.");
+    
+        });
+    
+    
+        s.sub("privacy_no_priming", ss => {
+    
+            ss.begin(() => {
+                s.set("voice", "Mary");
+                s.say("Möchten Sie, dass ich Ihre Daten aus dieser Interaktion jetzt lösche?");   
+            });
+            
+            ss.match(/ja|jo|sicher|jaup|löschen|ok/i, () => { 
+    
+                $('#survey_form').append('<input type="hidden" name="response_yn" value="yes" />');
+    
+                s.say("Okay. Ich habe Ihre Daten aus dieser Interaktion gelöscht.");
+                s.say("Auf Wiedersehen!"); 
+                s.pause(1000);
+                s.ready(() => { s.run("survey_subscript"); })
+            });
+    
+            ss.match(/nein|nö|nicht löschen|lieber nicht|auf keinen Fall/i, () => { 
+    
+                $('#survey_form').append('<input type="hidden" name="response_yn" value="no" />');
+    
+                s.say("Okay dann.");
+                s.say("Auf Wiedersehen!"); 
+                s.pause(1000);
+                s.ready(() => { s.run("survey_subscript"); })
+            });
+    
+            ss.unknown(function() {
+                s.say("Entschuldigung, ich verstehe nicht. Sie können 'ja' oder 'nein' sagen, um die Daten zu löschen, die ich aus unserer Interaktion gesammelt habe.");
+            });
+    
+            $('#hint').html("Aufgabe: <b>Kontrollieren Sie den Kontostand </b> Ihrer Kreditkarte mit der Endung <b>5678</b> für die letzten <b>drei Monate</b>.");
+    
+        });
+    
+        s.sub("control", ss => {
+    
+            ss.begin(() => {
+                s.set("voice", "Mary");
+                s.say("Kann ich Ihnen sonst noch bei irgendetwas helfen?")
+            });
+        
+            ss.match(/ja|jo|sicher|jaup|ok/i, () => { 
+    
+                $('#survey_form').append('<input type="hidden" name="response_yn" value="yes" />');
+    
+                s.say("Es tut mir leid, mehr Hilfe kann ich im Moment nicht leisten. Sie können sich stattdessen an einen menschlichen Assistenten wenden.");
+                s.say("Auf Wiedersehen!"); 
+                s.pause(1000);
+                s.ready(() => { s.run("survey_subscript"); })
+            });
+    
+            ss.match(/nein|nö|lieber nicht|auf keinen Fall|danke, nein| danke nein/i, () => { 
+    
+                $('#survey_form').append('<input type="hidden" name="response_yn" value="no" />');
+    
+                s.say("Okay dann.");
+                s.say("Auf Wiedersehen!"); 
+                s.pause(1000);
+                s.ready(() => { s.run("survey_subscript"); })
+            });
+    
+            ss.unknown(function() {
+                s.say("Entschuldigung, ich verstehe nicht. Sie können 'ja' oder 'nein' sagen, wenn Sie mehr Hilfe wünschen.");
+            });
+    
+            $('#hint').html("Aufgabe: <b>Kontrollieren Sie den Kontostand </b> Ihrer Kreditkarte mit der Endung <b>5678</b> für die letzten <b>drei Monate</b>.");
+    
+        });
+    
+        s.sub("survey_subscript", ss => {
+            ss.begin(() => {
+                s.survey("survey");
+            });
+        });
+    
+    
+    });
+    
+    cbl.survey("survey", s => {
+    
+    
+      s.section("Aufmerksamkeitstest");
+    
+      s.select("n_attention", "Geben Sie das Wort <b>orange</b> in das Textfeld unten ein. \n Welches Wort wurden Sie gebeten einzugeben?",
+        [
+            ["none", "keines"],
+            ["brown", "braun"],
+            ["blue", "blau"],
+            ["orange", "orange"]
+      ], { desc_width: "70%" });
+      
+    
+    
+      s.section("<br /><br />Modalitätsprüfung");
+      s.select("n_modality", "Konnten Sie die Sprachausgabe hören?",
+        [
+            ["yes", "Ja, durchgängig"],
+            ["no", "Nein, nicht durchgängig"]
+        ]);
+    
+    
+      s.section("<br /><br />Bitte geben Sie an, wie stark Sie den folgenden Aussagen zustimmen oder nicht zustimmen:");
+    
+      s.likert_scale([
+            ["q_SEC1", "Dieser Chatbot verfügt über Mechanismen, um die sichere Übertragung von Informationen seiner Benutzer zu gewährleisten." ],
+            ["q_SEC2", "Dieser Chatbot zeigt große Sorge um die Sicherheit jeglicher Transaktionen." ],
+            ["q_SEC5", "Wenn ich Daten an diesen Chatbot sende, bin ich sicher, dass sie nicht von unbefugten Dritten abgefangen werden." ],
+            ["q_SEC6", "Dieser Chatbot hat genügend technische Kapazität, um sicherzustellen, dass die von mir gesendeten Daten nicht von Hackern abgefangen werden." ],
+            ["q_SEC7", "Wenn ich Daten an diesen Chatbot sende, bin ich sicher, dass sie nicht von Dritten geändert werden können." ],
+            ["q_SEC8", "Dieser Chatbot verfügt über ausreichende technische Kapazitäten, um sicherzustellen, dass die von mir gesendeten Daten nicht von Dritten verändert werden können." ]
+        ], { points: 7, agree: "Ich stimme voll zu", disagree: "Ich stimme überhaupt nicht zu" });
+    
+        s.likert_scale([
+            ["q_PRIV1", "Dieser Chatbot zeigt Sorge um die Privatsphäre seiner Benutzer." ],
+            ["q_PRIV2", "Ich fühle mich sicher, wenn ich persönliche Informationen an diesen Chatbot sende." ],
+            ["q_PRIV3", "Dieser Chatbot hält sich an die Gesetze zum Schutz persönlicher Daten." ],
+            ["q_PRIV4", "Dieser Chatbot sammelt nur persönliche Daten, die für seine Tätigkeit notwendig sind." ],
+            ["q_PRIV5", "Dieser Chatbot respektiert die Rechte der Nutzer, wenn er persönliche Informationen sammelt." ],
+            ["q_PRIV6", "Ich denke, dass dieser Chatbot meine persönlichen Daten nicht ohne meine Zustimmung an andere Unternehmen weitergeben wird." ]
+        ], { points: 7, agree: "Ich stimme voll zu", disagree: "Ich stimme überhaupt nicht zu" });
+    
+        s.likert_scale([
+            ["q_USAB1", "Alles was dieser Chatbot sagt und tut ist einfach zu verstehen." ],
+            ["q_USAB2", "Dieser Chatbot ist einfach zu benutzen, selbst wenn man ihn zum ersten Mal benutzt." ],
+            ["q_USAB3", "Es ist einfach, die Informationen, die ich benötige, über diesen Chatbot zu finden." ],
+            ["q_USAB4", "Die Struktur und der Inhalt dieses Chatbots sind leicht verständlich." ],
+            ["q_USAB5", "Es ist leicht, sich in diesem Chatbot zurechtzufinden." ],
+            ["q_USAB7", "Wenn ich den Chatbot benutze, habe ich das Gefühl, dass ich die Kontrolle darüber habe, was ich tun kann." ]
+        ], { points: 7, agree: "Ich stimme voll zu", disagree: "Ich stimme überhaupt nicht zu" });
+    
+        s.likert_scale([
+            ["q_TRUST_HON1", "Dieser Chatbot erfüllt in der Regel die von ihm übernommenen Verpflichtungen." ],
+            ["q_TRUST_HON2", "Die von diesem Chatbot angebotenen Informationen sind aufrichtig und ehrlich." ],
+            ["q_TRUST_HON3", "Ich denke, ich kann den Versprechen, die dieser Chatbot macht, vertrauen." ],
+            ["q_TRUST_HON4", "Dieser Chatbot macht keine falschen Aussagen." ],
+            ["q_TRUST_HON5", "Dieser Chatbot zeichnet sich durch Offenheit und Klarheit der Dienstleistungen aus, die er Nutzern anbietet." ]
+        ], { points: 7, agree: "Ich stimme voll zu", disagree: "Ich stimme überhaupt nicht zu" });
+    
+        s.likert_scale([
+            ["q_TRUST_BENEV1", "Die Ratschläge und Empfehlungen, die dieser Chatbot gibt, versuchen gegenseitigen Nutzen zu schaffen." ],
+            ["q_TRUST_BENEV2", "Dieser Chatbot kümmert sich um die gegenwärtigen und zukünftigen Interessen seiner Benutzer." ],
+            ["q_TRUST_BENEV3", "Dieser Chatbot berücksichtigt die Auswirkungen, die seine Aktionen auf den Verbraucher haben könnten." ],
+            ["q_TRUST_BENEV4", "Dieser Chatbot würde nichts absichtlich tun, was den Benutzer schädigen würde." ],
+            ["q_TRUST_BENEV5", "Das Design und das kommerzielle Angebot dieses Chatbots berücksichtigt die Wünsche und Bedürfnisse seiner Benutzer." ],
+            ["q_TRUST_BENEV6", "Dieser Chatbot ist empfänglich für die Bedürfnisse seiner Benutzer." ]
+        ], { points: 7, agree: "Ich stimme voll zu", disagree: "Ich stimme überhaupt nicht zu" });
+    
+        s.likert_scale([
+            ["q_TRUST_COMP1", "Dieser Chatbot verfügt über die notwendigen Fähigkeiten, um seine Arbeit auszuführen."],
+            ["q_TRUST_COMP2", "Dieser Chatbot hat genügend Erfahrung in der Vermarktung der von ihm angebotenen Produkte und Dienstleistungen." ],
+            ["q_TRUST_COMP3", "Dieser Chatbot verfügt über die notwendigen Ressourcen, um seine Aktivitäten erfolgreich durchzuführen." ],
+            ["q_TRUST_COMP4", "Dieser Chatbot kennt seine Benutzer gut genug, um ihnen Produkte und Dienstleistungen anbieten zu können, die an ihre Bedürfnisse angepasst sind."]
+        ], { points: 7, agree: "Ich stimme voll zu", disagree: "Ich stimme überhaupt nicht zu" });
+    
+        s.likert_scale([
+            ["q_COMMIT2", "Ich würde diesen Chatbot anderen Leuten empfehlen." ],
+            ["q_COMMIT3", "Falls jemand diesen Chatbot kritisieren sollte, würde ich auf die positiven Aspekte dieses Chatbots hinweisen wollen."],
+            ["q_COMMIT5", "Selbst wenn neue Online-Alternativen auftauchen, würde ich diesen Chatbot weiterhin nutzen."]
+        ], { points: 7, agree: "Ich stimme voll zu", disagree: "Ich stimme überhaupt nicht zu" });
+    
+        
+    
+      s.section("<br /><br />Fragen zu Ihrer Person:");
+    
+        s.select("n_gender", "Welches Geschlecht haben Sie?",
+        [
+          ["male", "Männlich"],
+          ["female", "Weiblich"],
+          ["diverse", "Divers"],
+          ["other", "Keine Angabe"]
+        ], { desc_width: "70%" });
+      
+      
+      s.input_range("n_age", "Alter", 0, 199, { desc_width: "70%" });
+      
+      s.select("n_language", "Sind Sie Deutschmuttersprachler?",
+        [
+          ["yes", "Ja"],
+          ["no", "Nein"]
+        ]), { desc_width: "70%" };
+      
+      s.select("n_usage", "Wie häufig nutzen Sie Chatbots?",
+      [
+        ["no", "Überhaupt nicht"],
+        ["seldom", "Weniger als einmal im Monat"],
+        ["often","2-4 Mal im Monat"],
+        ["frequent","Mehr als einmal die Woche"]
+      ], { desc_width: "70%" });
+    
+    });
+    
+    
+    cbl.start("Privacy_Dialogue");
+    
+    </script>
+  </body>
+</html>
