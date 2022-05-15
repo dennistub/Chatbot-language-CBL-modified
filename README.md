@@ -3,6 +3,7 @@
 ## Overview
 
 CBL is a chatbot language and experiment framework that can generate interactve chatbots as single-page HTML files which can be used as web-based chatbot experiments or Amazon Mechanical Turk HITs.
+This one is a modified version of the original CBL available at <URL to be added here>. It was modified as part of my Bachelor's Thesis.
 
 ## Project Layout
   
