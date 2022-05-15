@@ -1,0 +1,44 @@
+[
+    {
+        "record": {
+            "n_attention": "orange",
+            "q_PRIV1": "2",
+            "q_PRIV2": "2",
+            "q_PRIV3": "2",
+            "q_PRIV4": "4",
+            "q_PRIV5": "3",
+            "q_PRIV6": "4",
+            "q_TRUST1": "4",
+            "q_TRUST2": "4",
+            "q_TRUST3": "4",
+            "q_TRUST4": "3",
+            "q_TRUST5": "4",
+            "q_IUIPC1": "5",
+            "q_IUIPC2": "5",
+            "q_IUIPC3": "4",
+            "q_IUIPC4": "4",
+            "q_IUIPC5": "2",
+            "q_IUIPC6": "2",
+            "q_IUIPC7": "1",
+            "q_COMMIT1": "3",
+            "q_COMMIT2": "4",
+            "q_COMMIT3": "2",
+            "n_usage": "seldom",
+            "n_smartDevicesOwnershipt": "none",
+            "n_gender": "female",
+            "n_age": "27",
+            "n_language": "yes",
+            "n_firstLetterNameMother": "S",
+            "n_firstLetterNameFather": "T",
+            "n_firstLetterBirthplace": "D",
+            "n_lastDigitBirthYear": "4",
+            "n_lastDigitBirthDay": "9",
+            "transcript": "[Vicki] Hi! Willkommen beim DATEV Lab Gehaltsrechner.; [Vicki] Ich kann dir einen \u00dcberblick \u00fcber deinen Netto-Lohn geben, wenn du mir dein Bruttogehalt, deine Steuerklasse, die Kinderanzahl und deine Kirchensteuerpflicht verr\u00e4tst.; [Vicki] M\u00f6chtest du f\u00fcr den Einstieg eine kurze Einf\u00fchrung h\u00f6ren?; [user] Nein; [Vicki] Kein Problem! \u00dcbrigens: Wenn du die Einf\u00fchrung doch h\u00f6ren willst, sag einfach \"Einf\u00fchrung\".; [Vicki] F\u00fcr welchen Betrag m\u00f6chtest du den Nettowert wissen?; [user] 3600; [Vicki] Alles klar! 3600 Euro Bruttogehalt. Wie ist deine Steuerklasse?; [user] 1; [Vicki] Wieviele Kinder hast du?; [user] 0; [Vicki] Ok! Und in welchem Bundesland lebst du?; [user] NRW; [Vicki] Bezahlst du Kirchensteuer?; [user] Ja; [Vicki] Sehr gut. Dann habe ich auch schon alles wichtige. Bitte beachte, dass das Ergebnis nur ein Richtwert ist. Der voraussichtliche Nettolohn betr\u00e4gt 2288,39 Euro.; [Vicki] Soll ich die angegebenen Daten f\u00fcr die n\u00e4chste Berechnung speichern?; [user] Ja; [Vicki] Wird gemacht.; [Vicki] Auf Wiedersehen; EOTEOT"
+        },
+        "metadata": {
+            "id": "6280b80d25069545a336b798",
+            "private": true,
+            "createdAt": "2022-05-15T08:21:33.503Z"
+        }
+    }
+]
