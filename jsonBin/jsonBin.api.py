@@ -38,7 +38,7 @@ binsArray = []
 
 async def getBins():
 
-    url = 'https://api.jsonbin.io/v3/c/uncategorized/bins/627aa31b38be296761005d67'
+    url = 'https://api.jsonbin.io/v3/c/uncategorized/bins'
     headers = {
         'X-Master-Key': '$2b$10$OpqpX1ClKRaQhj8QhbE/q.GYv2TZsb.RMyu1c8qIuye9Ki5scgBue'
     }
