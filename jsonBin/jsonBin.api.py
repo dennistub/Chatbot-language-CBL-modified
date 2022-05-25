@@ -38,7 +38,7 @@ binsArray = []
 
 async def getBins():
 
-    url = 'https://api.jsonbin.io/v3/c/uncategorized/bins'
+    url = 'https://api.jsonbin.io/v3/c/uncategorized/bins/6278ec6138be296761fe99da'
     headers = {
         'X-Master-Key': '$2b$10$OpqpX1ClKRaQhj8QhbE/q.GYv2TZsb.RMyu1c8qIuye9Ki5scgBue'
     }
@@ -87,7 +87,47 @@ async def main():
                 json.dump(data, bla, indent=4)
 
 
-asyncio.run(main())
+# asyncio.run(main())
+substring = 'Daten für die nächste Berechnung speichern?'
+with open('results.json', 'r') as json_file:
+
+    results = json.load(json_file)
+    # print(len(resultsFile))
+    # print(resultsFile[0])
+
+    for i in range(len(results)):
+        # if substring in results[i]['record']['transcript']:
+        #     results[i]['record']['condition'] = 'control'
+        if 'Daten für die nächste Berechnung speichern?; [user] JA' or 'Daten für die nächste Berechnung speichern?; [user] ja' or 'Daten für die nächste Berechnung speichern?; [user] speichern' in results[i]['record']['transcript']:
+            results[i]['record']['response_yn'] = 'yes'
+            results[i]['record']['condition'] = 'control'
+
+        if 'Daten für die nächste Berechnung speichern?; [user] Nein' or 'Daten für die nächste Berechnung speichern?; [user] nein' or 'Daten für die nächste Berechnung speichern?; [user] ne' in results[i]['record']['transcript']:
+            results[i]['record']['response_yn'] = 'no'
+            results[i]['record']['condition'] = 'control'
+
+        # else:
+        if 'dich löschen?; [user] nein;' or 'dich löschen?; [user] Nein;' or 'dich löschen?; [user] ne;' in results[i]['record']['transcript']:
+            results[i]['record']['response_yn'] = 'no'
+            results[i]['record']['condition'] = 'privacy_priming'
+
+        if 'dich löschen?; [user] ja;' or 'dich löschen?; [user] Ja;' or 'dich löschen?; [user] Jo;' in results[i]['record']['transcript']:
+            results[i]['record']['response_yn'] = 'yes'
+            results[i]['record']['condition'] = 'privacy_priming'
+
+    # print(results)
+    with open('results.json', 'r') as chick:
+        data = json.load(chick)
+        data.append(results)
+    with open('results.json', 'w') as bla:
+        json.dump(data, bla, indent=4)
+
+
+# print(resultsFile[i]['record'])
+# Append response and condition to all json objects that came later
+# for i in range(len(resultsFile)):
+#     print(resultsFile['0'])
+
 
 # url = 'https://api.jsonbin.io/v3/c/uncategorized/bins'
 # headers = {
